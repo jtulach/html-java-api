@@ -1381,9 +1381,20 @@ public final class ModelProcessor extends AbstractProcessor {
                 "        ex.printStackTrace();\n"
                 );
         } else {
-            error = !findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            int errorParamsLength = findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            error = errorParamsLength < 0;
             body.append("        ").append(clazz.getSimpleName()).append(".").append(onR.onError()).append("(");
-            body.append("model, ex);\n");
+            body.append("model, ex");
+            for (int i = 2; i < errorParamsLength; i++) {
+                String arg = args.get(i);
+                body.append(", ");
+                if (arg.startsWith("arr") || arg.startsWith("java.util.Array")) {
+                    body.append("null");
+                } else {
+                    body.append(arg);
+                }
+            }
+            body.append(");\n");
         }
         body.append(
             "        return;\n" +
@@ -1470,11 +1481,22 @@ public final class ModelProcessor extends AbstractProcessor {
                 "        value.printStackTrace();\n"
                 );
         } else {
-            if (!findOnError(e, ((TypeElement)clazz), onR.onError(), className)) {
+            int errorParamsLength = findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            if (errorParamsLength < 0) {
                 return true;
             }
             body.append("        ").append(inPckName(clazz, true)).append(".").append(onR.onError()).append("(");
-            body.append("model, value);\n");
+            body.append("model, value");
+            for (int i = 2; i < errorParamsLength; i++) {
+                String arg = args.get(i);
+                body.append(", ");
+                if (arg.startsWith("arr") || arg.startsWith("java.util.Array")) {
+                    body.append("null");
+                } else {
+                    body.append(arg);
+                }
+            }
+            body.append(");\n");
         }
         body.append(
             "        return;\n" +
@@ -2113,7 +2135,7 @@ public final class ModelProcessor extends AbstractProcessor {
         return Completions.of('"' + method + '"', rb.getString("MSG_Completion_" + method));
     }
 
-    private boolean findOnError(ExecutableElement errElem, TypeElement te, String name, String className) {
+    private int findOnError(ExecutableElement errElem, TypeElement te, String name, String className) {
         String err = null;
         METHODS:
         for (Element e : te.getEnclosedElements()) {
@@ -2132,7 +2154,7 @@ public final class ModelProcessor extends AbstractProcessor {
             TypeMirror excType = processingEnv.getElementUtils().getTypeElement(Exception.class.getName()).asType();
             final List<? extends VariableElement> params = ee.getParameters();
             boolean error = false;
-            if (params.size() != 2) {
+            if (params.size() < 2 || params.size() > errElem.getParameters().size()) {
                 error = true;
             } else {
                 String firstType = params.get(0).asType().toString();
@@ -2146,19 +2168,28 @@ public final class ModelProcessor extends AbstractProcessor {
                 if (!processingEnv.getTypeUtils().isAssignable(excType, params.get(1).asType())) {
                     error = true;
                 }
+                for (int i = 2; i < params.size(); i++) {
+                    final VariableElement expectedParam = errElem.getParameters().get(i);
+                    if (!processingEnv.getTypeUtils().isSameType(params.get(i).asType(), errElem.getParameters().get(i).asType())) {
+                        error = true;
+                        err = "Parameter #" + (i + 1) + " should be of type " + expectedParam;
+                    }
+                }
             }
             if (error) {
                 errElem = (ExecutableElement) e;
-                err = "Error method first argument needs to be " + className + " and second Exception";
+                if (err == null) {
+                    err = "Error method first argument needs to be " + className + " and second Exception";
+                }
                 continue;
             }
-            return true;
+            return params.size();
         }
         if (err == null) {
             err = "Cannot find " + name + "(" + className + ", Exception) method in this class";
         }
         error(err, errElem);
-        return false;
+        return -1;
     }
 
     private ExecutableElement findWrite(ExecutableElement computedPropElem, TypeElement te, String name, String className) {

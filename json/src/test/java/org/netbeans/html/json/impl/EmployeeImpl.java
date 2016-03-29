@@ -75,6 +75,24 @@ public class EmployeeImpl {
         e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
     }
 
+    @OnReceive(url = "some/other/url", onError = "errorPersonalitiesWithEx")
+    static void changePersonalitiesWithEx(Employee e, List<Person> data, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
+    }
+
+    static void errorPersonalitiesWithEx(Employee e, Exception ex) {
+        e.setCall(new Call(-1, -1, null, null));
+    }
+
+    @OnReceive(url = "some/other/url", onError = "errorPersonalitiesWithParam")
+    static void changePersonalitiesWithParam(Employee e, List<Person> data, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
+    }
+
+    static void errorPersonalitiesWithParam(Employee e, Exception ex, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o));
+    }
+
     @OnReceive(url = "{url}", method = "PUT", data = Person.class)
     static void updatePersonalities(Employee e, List<Person> p, int i, double d, String s, Person o) {
         e.setPerson(p.get(0));
