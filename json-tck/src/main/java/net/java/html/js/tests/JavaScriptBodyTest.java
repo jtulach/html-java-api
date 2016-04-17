@@ -205,10 +205,16 @@ public class JavaScriptBodyTest {
         assertEquals(r, p, "The null is the same");
     }
     
-    @KOTest public void callbackWithResult() {
-        Callable<Boolean> c = new C();
-        Object b = Bodies.callback(c);
-        assertEquals(b, Boolean.TRUE, "Should return true");
+    @KOTest public void callbackWithTrueResult() {
+        Callable<Boolean> c = new C(true);
+        String b = Bodies.yesNo(c);
+        assertEquals(b, "yes", "Should return true");
+    }
+
+    @KOTest public void callbackWithFalseResult() {
+        Callable<Boolean> c = new C(false);
+        String b = Bodies.yesNo(c);
+        assertEquals(b, "no", "Should return false");
     }
     
     @KOTest public void callbackWithParameters() throws InterruptedException {
@@ -410,9 +416,15 @@ public class JavaScriptBodyTest {
     }
     
     private static class C implements Callable<Boolean> {
+        private final boolean ret;
+
+        public C(boolean ret) {
+            this.ret = ret;
+        }
+        
         @Override
         public Boolean call() throws Exception {
-            return Boolean.TRUE;
+            return ret;
         }
     }
     static void assertEquals(Object a, Object b, String msg) {

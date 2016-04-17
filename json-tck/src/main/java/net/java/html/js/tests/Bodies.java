@@ -64,9 +64,6 @@ final class Bodies {
     @JavaScriptBody(args = {"r"}, wait4js = false, keepAlive = false, javacall = true, body = "r.@java.lang.Runnable::run()();")
     static native void asyncCallback(Runnable r);
     
-    @JavaScriptBody(args = {"c"}, javacall = true, body = "return c.@java.util.concurrent.Callable::call()();")
-    static native Object callback(Callable<? extends Object> c);
-
     @JavaScriptBody(args = {"c", "v"}, javacall = true, body = "var arr = c.@java.util.concurrent.Callable::call()(); arr.push(v); return arr;")
     static native Object callbackAndPush(Callable<String[]> c, String v);
     
@@ -204,6 +201,13 @@ final class Bodies {
         "return sum.@net.java.html.js.tests.Sum::all(ZBSIJFDCLjava/lang/String;)(false, 1, 2, 3, 5, 6, 7, 32, 'TheEND');\n"
     )
     static native String primitiveTypes(Sum sum);
+
+    @JavaScriptBody(args = { "call" }, javacall = true, body = ""
+        + "var b = call.@java.util.concurrent.Callable::call()();\n"
+        + "return b ? 'yes' : 'no';\n"
+    )
+    static native String yesNo(Callable<Boolean> call);
+
     
     static String problematicString() {
         return "{\n" +
