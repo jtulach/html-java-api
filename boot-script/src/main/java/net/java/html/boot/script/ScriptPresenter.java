@@ -175,6 +175,7 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
         fn.invokeImpl(null, false, val, arr);
         return arr;
     }
+
     private FnImpl arraySize;
     private FnImpl arraySizeFn() {
         if (arraySize == null) {
@@ -185,7 +186,9 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
                     + "  else return -1;\n"
                     + "} else {\n"
                     + "  var l = arr.length;\n"
-                    + "  for (var i = 0; i < l; i++) to[i] = arr[i];\n"
+                    + "  for (var i = 0; i < l; i++) {\n"
+                    + "    to[i] = arr[i] === undefined ? null : arr[i];\n"
+                    + "  }\n"
                     + "  return l;\n"
                     + "}", new String[] { "arr", "to" }, null
                 );

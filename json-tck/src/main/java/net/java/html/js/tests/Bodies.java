@@ -192,6 +192,32 @@ final class Bodies {
     )
     static native int gc(double max);
 
+    @JavaScriptBody(args = {}, body = ""
+        + "var o = {};\n"
+        + "return o.x;\n"
+    )
+    static native Object unknown();
+
+    @JavaScriptBody(args = {}, body = ""
+        + "return new Array(2);\n"
+    )
+    static native Object[] unknownArray();
+
+    @JavaScriptBody(args = { "sum" }, javacall = true, body = ""
+        + "var arr = [];\n"
+        + "arr[1] = null;\n"
+        + "arr[2] = 1;\n"
+        + "return sum.@net.java.html.js.tests.Sum::sumNonNull([Ljava/lang/Object;)(arr);\n"
+    )
+    static native int sumNonNull(Sum sum);
+
+    @JavaScriptBody(args = { "sum", "p" }, javacall = true, body = ""
+        + "var obj = {};\n"
+        + "obj.x = 1;\n"
+        + "return sum.@net.java.html.js.tests.Sum::checkNonNull(Ljava/lang/Object;)(obj[p]);\n"
+    )
+    static native boolean nonNull(Sum sum, String p);
+
     @JavaScriptBody(args = {}, javacall = true, body = 
         "return @net.java.html.js.tests.Bodies::problematicString()();"
     )

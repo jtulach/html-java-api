@@ -60,6 +60,20 @@ public final class Sum {
         }
         return s;
     }
+
+    public int sumNonNull(Object[] arr) {
+        int s = 0;
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] != null) {
+                s++;
+            }
+        }
+        return s;
+    }
+
+    public boolean checkNonNull(Object obj) {
+        return obj != null;
+    }
     
     public String all(boolean z, byte b, short s, int i, long l, float f, double d, char ch, String str) {
         return "Ahoj" + z + b + s + i + l + f + d + ch + str;

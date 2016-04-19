@@ -76,6 +76,7 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
     // transient - e.g. not cloneable
     private JSObject arraySize;
     private JSObject wrapArrImpl;
+    private Object undefined;
 
     @Override
     protected AbstractFXPresenter clone() {
@@ -83,6 +84,7 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
             AbstractFXPresenter p = (AbstractFXPresenter) super.clone();
             p.arraySize = null;
             p.wrapArrImpl = null;
+            p.undefined = null;
             return p;
         } catch (CloneNotSupportedException ex) {
             throw new IllegalStateException(ex);
@@ -223,6 +225,13 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         return wrapArrImpl;
     }
 
+    final Object undefined() {
+        if (undefined == null) {
+            undefined = engine.executeScript("undefined");
+        }
+        return undefined;
+    }
+
     final Object checkArray(Object val) {
         if (!(val instanceof JSObject)) {
             return val;
@@ -233,8 +242,22 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         }
         Object[] arr = new Object[length];
         arraySizeFn().call("array", val, arr);
+        clearUndefinedArray(arr);
         return arr;
     }
+
+    private void clearUndefinedArray(Object[] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == undefined) {
+                arr[i] = null;
+                continue;
+            }
+            if (arr[i] instanceof Object[]) {
+                clearUndefinedArray((Object[])arr[i]);
+            }
+        }
+    }
+
     private final JSObject arraySizeFn() {
         if (arraySize == null) {
             try {
@@ -328,6 +351,7 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
 
         final Object invokeImpl(Object thiz, boolean arrayChecks, Object... args) throws Exception {
             try {
+                final AbstractFXPresenter presenter = (AbstractFXPresenter) presenter();
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.log(Level.FINE, "calling {0} function #{1}", new Object[]{++call, id});
                     LOG.log(Level.FINER, "  thiz  : {0}", thiz);
@@ -340,7 +364,7 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
                     if (arrayChecks) {
                         if (args[i] instanceof Object[]) {
                             Object[] arr = (Object[]) args[i];
-                            conv = ((AbstractFXPresenter)presenter()).convertArrays(arr);
+                            conv = presenter.convertArrays(arr);
                         }
                         if (conv != null && keepAlive != null &&
                             !keepAlive[i] && !isJSReady(conv) &&
@@ -355,13 +379,13 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
                 if (ret instanceof Weak) {
                     ret = ((Weak)ret).get();
                 }
-                if (ret == fn) {
+                if (ret == fn || ret == presenter.undefined()) {
                     return null;
                 }
                 if (!arrayChecks) {
                     return ret;
                 }
-                return ((AbstractFXPresenter)presenter()).checkArray(ret);
+                return presenter.checkArray(ret);
             } catch (Error t) {
                 t.printStackTrace();
                 throw t;

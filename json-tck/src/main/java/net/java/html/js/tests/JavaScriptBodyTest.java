@@ -358,7 +358,42 @@ public class JavaScriptBodyTest {
         String all = Bodies.primitiveTypes(new Sum());
         assertEquals("Ahojfalse12356.07.0 TheEND", all, "Valid return type: " + all);
     }
+
+    @KOTest public void returnUnknown() {
+        Object o = Bodies.unknown();
+        assertNull(o, "Unknown is converted to null");
+    }
+
+    @KOTest public void returnUndefinedString() {
+        Object o = Bodies.id("undefined");
+        assertNotNull(o, "String remains string");
+    }
+
+    @KOTest public void returnUnknownArray() {
+        Object[] arr = Bodies.unknownArray();
+        assertEquals(arr.length, 2, "Two elements");
+        assertNull(arr[0], "1st element is null");
+        assertNull(arr[1], "2nd element is null");
+    }
+
+    @KOTest public void callbackKnown() {
+        Sum s = new Sum();
+        boolean nonNull = Bodies.nonNull(s, "x");
+        assertTrue(nonNull, "x property exists");
+    }
     
+    @KOTest public void callbackUnknown() {
+        Sum s = new Sum();
+        boolean isNull = Bodies.nonNull(s, "y");
+        assertTrue(isNull, "y property doesn't exist");
+    }
+
+    @KOTest public void callbackUnknownArray() {
+        Sum s = new Sum();
+        int nullAndUnknown = Bodies.sumNonNull(s);
+        assertEquals(nullAndUnknown, 1, "Only one slot");
+    }
+
     @KOTest public void problematicString() {
         String orig = Bodies.problematicString();
         String js = Bodies.problematicCallback();
