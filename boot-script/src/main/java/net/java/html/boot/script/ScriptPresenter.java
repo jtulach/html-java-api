@@ -74,6 +74,17 @@ import org.netbeans.html.boot.spi.Fn.Presenter;
 final class ScriptPresenter implements Fn.KeepAlive,
 Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
     private static final Logger LOG = Logger.getLogger(ScriptPresenter.class.getName());
+    private static final boolean JDK7;
+    static {
+        boolean jdk7;
+        try {
+            Class.forName("java.lang.FunctionalInterface");
+            jdk7 = false;
+        } catch (ClassNotFoundException ex) {
+            jdk7 = true;
+        }
+        JDK7 = jdk7;
+    }
     private final ScriptEngine eng;
     private final Executor exc;
 
@@ -220,6 +231,11 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
                 throw new IllegalStateException(ex);
             }
         } else {
+            if (JDK7) {
+                if (toReturn instanceof Boolean) {
+                    return ((Boolean)toReturn) ? true : null;
+                }
+            }
             return toReturn;
         }
     }
