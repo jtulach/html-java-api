@@ -234,6 +234,8 @@ final class Bodies {
     )
     static native String yesNo(Callable<Boolean> call);
 
+    @JavaScriptBody(args = {}, body = "return globalString;")
+    static native String readGlobalString();
     
     static String problematicString() {
         return "{\n" +

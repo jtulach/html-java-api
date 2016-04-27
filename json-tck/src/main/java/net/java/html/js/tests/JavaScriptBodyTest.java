@@ -434,6 +434,12 @@ public class JavaScriptBodyTest {
         }
         assertEquals(l.call, 42, "Method was called: " + l.call);
     }
+
+    @KOTest
+    public void globalStringAvailable() throws Exception {
+        GlobalString.init();
+        assertEquals("HTML/Java", Bodies.readGlobalString());
+    }
     
     private static class R implements Runnable {
         int cnt;
