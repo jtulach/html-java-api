@@ -384,8 +384,8 @@ public class JavaScriptBodyTest {
     
     @KOTest public void callbackUnknown() {
         Sum s = new Sum();
-        boolean isNull = Bodies.nonNull(s, "y");
-        assertTrue(isNull, "y property doesn't exist");
+        Boolean nonNull = Bodies.nonNull(s, "y");
+        assertFalse(Boolean.TRUE.equals(nonNull), "y property doesn't exist");
     }
 
     @KOTest public void callbackUnknownArray() {
@@ -411,6 +411,13 @@ public class JavaScriptBodyTest {
             }
         }
         fail("The JS string is different: " + js);
+    }
+
+    @KOTest
+    public void doubleInAnArray() throws Exception {
+        Double val = 2.2;
+        boolean res = Bodies.isInArray(new Object[] { val }, val);
+        assertTrue(res, "Should be in the array");
     }
     
     Later l;

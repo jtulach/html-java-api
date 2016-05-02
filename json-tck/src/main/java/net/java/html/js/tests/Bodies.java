@@ -216,7 +216,7 @@ final class Bodies {
         + "obj.x = 1;\n"
         + "return sum.@net.java.html.js.tests.Sum::checkNonNull(Ljava/lang/Object;)(obj[p]);\n"
     )
-    static native boolean nonNull(Sum sum, String p);
+    static native Boolean nonNull(Sum sum, String p);
 
     @JavaScriptBody(args = {}, javacall = true, body = 
         "return @net.java.html.js.tests.Bodies::problematicString()();"
@@ -234,6 +234,9 @@ final class Bodies {
     )
     static native String yesNo(Callable<Boolean> call);
 
+    @JavaScriptBody(args = {"arr", "val"}, body = "return arr[0] === val;")
+    public static native boolean isInArray(Object[] arr, Object val);
+    
     @JavaScriptBody(args = {}, body = "return globalString;")
     static native String readGlobalString();
     

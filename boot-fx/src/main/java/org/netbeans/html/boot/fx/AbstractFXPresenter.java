@@ -282,11 +282,14 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
     }
 
     @Override
-    public Object toJava(Object jsArray) {
-        if (jsArray instanceof Weak) {
-            jsArray = ((Weak)jsArray).get();
+    public Object toJava(Object toJS) {
+        if (toJS instanceof Weak) {
+            toJS = ((Weak)toJS).get();
         }
-        return checkArray(jsArray);
+        if (toJS == undefined()) {
+            return null;
+        }
+        return checkArray(toJS);
     }
 
     @Override
