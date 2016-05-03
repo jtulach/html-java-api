@@ -216,7 +216,7 @@ final class Bodies {
         + "obj.x = 1;\n"
         + "return sum.@net.java.html.js.tests.Sum::checkNonNull(Ljava/lang/Object;)(obj[p]);\n"
     )
-    static native Boolean nonNull(Sum sum, String p);
+    static native boolean nonNull(Sum sum, String p);
 
     @JavaScriptBody(args = {}, javacall = true, body = 
         "return @net.java.html.js.tests.Bodies::problematicString()();"

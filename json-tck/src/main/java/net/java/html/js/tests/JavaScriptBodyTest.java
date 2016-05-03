@@ -384,8 +384,8 @@ public class JavaScriptBodyTest {
     
     @KOTest public void callbackUnknown() {
         Sum s = new Sum();
-        Boolean nonNull = Bodies.nonNull(s, "y");
-        assertFalse(Boolean.TRUE.equals(nonNull), "y property doesn't exist");
+        boolean nonNull = Bodies.nonNull(s, "y");
+        assertFalse(nonNull, "y property doesn't exist");
     }
 
     @KOTest public void callbackUnknownArray() {
