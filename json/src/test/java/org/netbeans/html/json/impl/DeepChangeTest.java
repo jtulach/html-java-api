@@ -521,6 +521,17 @@ public class DeepChangeTest {
         void set(Object v) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
             pb.setValue(v);
         }
+
+        void assertNoChange(String msg) {
+            assertEquals(changes, 0, msg);
+        }
+
+        void assertChange(String msg) {
+            if (changes == 0) {
+                fail(msg);
+            }
+            changes = 0;
+        }
     }
 
     static final class MapTechnology
