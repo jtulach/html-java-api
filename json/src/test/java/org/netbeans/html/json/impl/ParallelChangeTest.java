@@ -79,28 +79,28 @@ public class ParallelChangeTest {
 
     private void doTest(boolean multipleValues) throws InterruptedException {
         class Test implements Runnable {
-            final int index;
+            final int offset;
             final Depending dep;
-            private RuntimeException runtimeException;
+            private Error error;
 
             public Test(int index, Depending dep) {
-                this.index = index;
+                this.offset = index;
                 this.dep = dep;
             }
 
             @Override
             public void run() {
                 try {
-                    int value = dep.getPlus();
-                    assertEquals(value, index + 11);
-                } catch (RuntimeException ex) {
-                    this.runtimeException = ex;
+                    int value = dep.getValuePlusAdd();
+                    assertEquals(value, offset + 11, "Offset " + offset + " plus one plus ten");
+                } catch (Error err) {
+                    this.error = err;
                 }
             }
 
             private void assertException() {
-                if (runtimeException != null) {
-                    throw runtimeException;
+                if (error != null) {
+                    throw error;
                 }
             }
         }
@@ -117,8 +117,8 @@ public class ParallelChangeTest {
                 values[i] = i == 0 ? new BlockingValue() : values[0];
             }
             BlockingValueCntrl.initialize(blockInCall);
-            deps[i] = new Depending(i, values[i]);
-            runs[i] = new Test(i, deps[i]);
+            deps[i] = new Depending(10, values[i]);
+            runs[i] = new Test(0, deps[i]);
             exec.execute(runs[i]);
         }
 
@@ -127,7 +127,7 @@ public class ParallelChangeTest {
         for (int i = 0; i < deps.length; i++) {
             runs[i].assertException();
             values[i].setValue(30);
-            assertEquals(deps[i].getPlus(), i + 42);
+            assertEquals(deps[i].getValuePlusAdd(), 41, "[" + i + "] = 0 plus 30 plus one plus 10");
         }
     }
 
@@ -159,8 +159,8 @@ public class ParallelChangeTest {
     })
     static class DependingCntrl {
         @ComputedProperty
-        static int plus(BlockingValue dep, int add) {
-            return dep.getPlusOne() + 10;
+        static int valuePlusAdd(BlockingValue dep, int add) {
+            return dep.getPlusOne() + add;
         }
     }
 
