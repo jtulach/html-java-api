@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import net.java.html.BrwsrCtx;
 import net.java.html.json.ComputedProperty;
 import net.java.html.json.Model;
+import net.java.html.json.Models;
 import net.java.html.json.Property;
 import org.netbeans.html.context.spi.Contexts;
 import org.netbeans.html.json.spi.Technology;
@@ -112,13 +113,15 @@ public class ParallelChangeTest {
         ExecutorService exec = Executors.newFixedThreadPool(deps.length);
         for (int i = 0; i < deps.length; i++) {
             if (multipleValues) {
-                values[i] = new BlockingValue();
+                values[i] = BlockingValueCntrl.create(c);
             } else {
-                values[i] = i == 0 ? new BlockingValue() : values[0];
+                values[i] = i == 0 ? BlockingValueCntrl.create(c) : values[0];
             }
-            BlockingValueCntrl.initialize(blockInCall);
-            deps[i] = new Depending(10, values[i]);
+            deps[i] = DependingCntrl.create(c, values[i], 10);
             runs[i] = new Test(0, deps[i]);
+        }
+        BlockingValueCntrl.initialize(blockInCall);
+        for (int i = 0; i < deps.length; i++) {
             exec.execute(runs[i]);
         }
 
@@ -143,13 +146,19 @@ public class ParallelChangeTest {
 
         @ComputedProperty
         static int plusOne(int value)  {
-            latch.countDown();
-            try {
-                latch.await();
-            } catch (InterruptedException ex) {
-                throw new IllegalStateException(ex);
+            if (latch != null) {
+                latch.countDown();
+                try {
+                    latch.await();
+                } catch (InterruptedException ex) {
+                    throw new IllegalStateException(ex);
+                }
             }
             return value + 1;
+        }
+
+        static BlockingValue create(BrwsrCtx c) {
+            return Models.bind(new BlockingValue(), c);
         }
     }
 
@@ -161,6 +170,12 @@ public class ParallelChangeTest {
         @ComputedProperty
         static int valuePlusAdd(BlockingValue dep, int add) {
             return dep.getPlusOne() + add;
+        }
+
+        static Depending create(BrwsrCtx c, BlockingValue value, int add) {
+            Depending d = Models.bind(new Depending(add, null), c);
+            d.setDep(value);
+            return d;
         }
     }
 
