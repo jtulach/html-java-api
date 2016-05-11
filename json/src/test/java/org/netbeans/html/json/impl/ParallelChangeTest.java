@@ -42,6 +42,7 @@
  */
 package org.netbeans.html.json.impl;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,6 +53,7 @@ import net.java.html.json.Model;
 import net.java.html.json.Models;
 import net.java.html.json.Property;
 import org.netbeans.html.context.spi.Contexts;
+import org.netbeans.html.json.impl.DeepChangeTest.One;
 import org.netbeans.html.json.spi.Technology;
 import org.netbeans.html.json.spi.Transfer;
 import org.testng.annotations.BeforeMethod;
@@ -128,8 +130,23 @@ public class ParallelChangeTest {
         exec.awaitTermination(1, TimeUnit.SECONDS);
 
         for (int i = 0; i < deps.length; i++) {
+            Map raw = (Map) Models.toRaw(deps[i]);
+            One value = (One) raw.get("valuePlusAdd");
+            value.assertNoChange("No changes yet for index " + i);
+        }
+
+        for (int i = 0; i < deps.length; i++) {
             runs[i].assertException();
             values[i].setValue(30);
+        }
+
+        for (int i = 0; i < deps.length; i++) {
+            Map raw = (Map) Models.toRaw(deps[i]);
+            One value = (One) raw.get("valuePlusAdd");
+            value.assertChange("A change for index " + i);
+        }
+
+        for (int i = 0; i < deps.length; i++) {
             assertEquals(deps[i].getValuePlusAdd(), 41, "[" + i + "] = 0 plus 30 plus one plus 10");
         }
     }
