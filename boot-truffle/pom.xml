@@ -13,6 +13,7 @@
     <properties>
         <netbeans.compile.on.save>NONE</netbeans.compile.on.save>
         <publicPackages>net.java.html.boot.truffle</publicPackages>
+        <trufflejs>${java.home}/language/js/trufflejs.jar</trufflejs>
     </properties>
     <build>
       <plugins>
@@ -116,4 +117,23 @@
             <type>jar</type>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>graalvm</id>
+            <activation>
+                <file>
+                    <exists>${trufflejs}</exists>
+                </file>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.oracle.graaljs</groupId>
+                    <artifactId>truffle-js</artifactId>
+                    <version>0.07</version>
+                    <systemPath>${trufflejs}</systemPath>
+                    <scope>system</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
