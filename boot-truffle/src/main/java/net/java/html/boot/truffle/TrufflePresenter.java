@@ -43,6 +43,7 @@
 package net.java.html.boot.truffle;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.java.JavaInterop;
@@ -103,7 +104,7 @@ final class TrufflePresenter implements Fn.KeepAlive,
         sb.append("})()\n");
 
         TruffleObject fn = (TruffleObject) getEval().eval(sb.toString());
-        return new FnImpl(this, fn, keepAlive);
+        return new FnImpl(this, fn, names.length);
     }
 
     @Override
@@ -241,10 +242,10 @@ final class TrufflePresenter implements Fn.KeepAlive,
         private final CallTarget fn;
         private final boolean[] keepAlive;
 
-        public FnImpl(Presenter presenter, TruffleObject fn, boolean[] keepAlive) {
+        public FnImpl(Presenter presenter, TruffleObject fn, int arity) {
             super(presenter);
-            this.fn = JavaInterop.asJavaFunction(CallTarget.class, fn);
-            this.keepAlive = keepAlive;
+            this.fn = Truffle.getRuntime().createCallTarget(new FnRootNode(fn, arity));
+            this.keepAlive = null;
         }
 
         @Override
