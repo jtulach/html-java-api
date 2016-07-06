@@ -145,7 +145,11 @@ final class TrufflePresenter implements Fn.KeepAlive,
             try {
                 if (arrayTest.hasSize()) {
                     List<?> list = JavaInterop.asJavaObject(List.class, truffleObj);
-                    return list.toArray();
+                    Object[] arr = list.toArray();
+                    for (int i = 0; i < arr.length; i++) {
+                        arr[i] = toJava(arr[i]);
+                    }
+                    return arr;
                 }
             } catch (NegativeArraySizeException ex) {
                 // swallow
