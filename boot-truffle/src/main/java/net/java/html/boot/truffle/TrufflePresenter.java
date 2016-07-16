@@ -47,7 +47,6 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.java.JavaInterop;
-import com.oracle.truffle.api.interop.java.MethodMessage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import java.io.Closeable;
@@ -71,10 +70,14 @@ final class TrufflePresenter implements Fn.KeepAlive,
     private Eval eval;
     private WrapArray copy;
     private final Executor exc;
+    private final CallTarget isNull;
+    private final CallTarget isArray;
 
     TrufflePresenter(Executor exc, TruffleObject eval) {
         this.exc = exc;
         this.eval = eval == null ? null : JavaInterop.asJavaFunction(Eval.class, eval);
+        this.isNull = Truffle.getRuntime().createCallTarget(new IsNullNode());
+        this.isArray = Truffle.getRuntime().createCallTarget(new IsArrayNode());
     }
 
     @Override
@@ -120,16 +123,6 @@ final class TrufflePresenter implements Fn.KeepAlive,
         getEval().eval(src.getCode());
     }
 
-    interface IsArray {
-        @MethodMessage(message = "HAS_SIZE")
-        public boolean hasSize();
-    }
-
-    interface IsNull {
-        @MethodMessage(message = "IS_NULL")
-        public boolean isNull();
-    }
-
     interface WrapArray {
         public Object copy(Object arr);
     }
@@ -141,18 +134,14 @@ final class TrufflePresenter implements Fn.KeepAlive,
     final Object checkArray(Object val) throws Exception {
         if (val instanceof TruffleObject) {
             final TruffleObject truffleObj = (TruffleObject)val;
-            IsArray arrayTest = JavaInterop.asJavaObject(IsArray.class, truffleObj);
-            try {
-                if (arrayTest.hasSize()) {
-                    List<?> list = JavaInterop.asJavaObject(List.class, truffleObj);
-                    Object[] arr = list.toArray();
-                    for (int i = 0; i < arr.length; i++) {
-                        arr[i] = toJava(arr[i]);
-                    }
-                    return arr;
+            boolean hasSize = (boolean) isArray.call(truffleObj);
+            if (hasSize) {
+                List<?> list = JavaInterop.asJavaObject(List.class, truffleObj);
+                Object[] arr = list.toArray();
+                for (int i = 0; i < arr.length; i++) {
+                    arr[i] = toJava(arr[i]);
                 }
-            } catch (NegativeArraySizeException ex) {
-                // swallow
+                return arr;
             }
         }
         return val;
@@ -164,14 +153,9 @@ final class TrufflePresenter implements Fn.KeepAlive,
             jsArray = ((JavaValue) jsArray).get();
         }
         if (jsArray instanceof TruffleObject) {
-            IsNull checkNull = JavaInterop.asJavaFunction(IsNull.class, (TruffleObject)jsArray);
-            try {
-                if (checkNull.isNull()) {
-                    return null;
-                }
-            } catch (NegativeArraySizeException ex) {
-                System.err.println("negative size for " + jsArray);
-                ex.printStackTrace();
+            boolean checkNull = (boolean) isNull.call(jsArray);
+            if (checkNull) {
+                return null;
             }
         }
         try {
