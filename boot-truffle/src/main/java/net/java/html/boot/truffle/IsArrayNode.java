@@ -62,7 +62,7 @@ final class IsArrayNode extends RootNode {
     @Override
     public Object execute(VirtualFrame frame) {
         final Object[] args = frame.getArguments();
-        Object result = ForeignAccess.sendIsNull(check, frame, (TruffleObject) args[0]);
+        Object result = ForeignAccess.sendHasSize(check, frame, (TruffleObject) args[0]);
         return result;
     }
 }
