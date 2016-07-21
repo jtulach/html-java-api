@@ -82,7 +82,7 @@ public class TruffleJavaScriptTest {
         }
         assertEquals(42, result.as(Number.class).intValue(), "Executed OK");
 
-        final BrowserBuilder bb = BrowserBuilder.newBrowser(new TrufflePresenter(SingleCase.JS, null)).
+        final BrowserBuilder bb = BrowserBuilder.newBrowser(TrufflePresenters.create(SingleCase.JS)).
             loadClass(TruffleJavaScriptTest.class).
             loadPage("empty.html").
             invoke("initialized");
