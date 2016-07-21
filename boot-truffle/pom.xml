@@ -41,6 +41,22 @@
                <target>1.7</target>
             </configuration>
          </plugin>
+         <plugin>
+             <groupId>org.netbeans.tools</groupId>
+             <artifactId>sigtest-maven-plugin</artifactId>
+             <version>1.0</version>
+             <executions>
+                 <execution>
+                     <goals>
+                         <goal>generate</goal>
+                         <goal>check</goal>
+                     </goals>
+                 </execution>
+             </executions>
+             <configuration>
+                 <sigfile>empty.sigtest</sigfile>
+             </configuration>
+         </plugin>
       </plugins>
     </build>
     <dependencies>
