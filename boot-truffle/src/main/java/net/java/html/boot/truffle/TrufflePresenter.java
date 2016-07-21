@@ -95,11 +95,9 @@ final class TrufflePresenter implements Fn.KeepAlive,
         sb.append("(function() {\n");
         sb.append("  return function(");
         String sep = "";
-        if (names != null) {
-            for (String n : names) {
-                sb.append(sep).append(n);
-                sep = ",";
-            }
+        for (String n : names) {
+            sb.append(sep).append(n);
+            sep = ",";
         }
         sb.append(") {\n");
         sb.append(code);
@@ -119,7 +117,10 @@ final class TrufflePresenter implements Fn.KeepAlive,
 
     @Override
     public void loadScript(Reader code) throws Exception {
-        Source src = Source.fromReader(code, "unknown.js");
+        Source src = Source.newBuilder(code).
+            name("unknown.js").
+            mimeType("text/javascript").
+            build();
         getEval().eval(src.getCode());
     }
 
@@ -179,6 +180,7 @@ final class TrufflePresenter implements Fn.KeepAlive,
 
         class Wrap implements Runnable {
 
+            @Override
             public void run() {
                 try (Closeable c = Fn.activate(TrufflePresenter.this)) {
                     command.run();
@@ -200,7 +202,9 @@ final class TrufflePresenter implements Fn.KeepAlive,
             try {
                 PolyglotEngine engine = PolyglotEngine.newBuilder().build();
                 TruffleObject fn = (TruffleObject) engine.eval(
-                    Source.fromText("eval.bind(this)", "eval.js").withMimeType("text/javascript")
+                    Source.newBuilder("eval.bind(this)").
+                        mimeType("text/javascript").
+                        name("eval.js").build()
                 ).get();
                 eval = JavaInterop.asJavaFunction(Eval.class, fn);
             } catch (IOException ex) {
@@ -228,20 +232,17 @@ final class TrufflePresenter implements Fn.KeepAlive,
     private class FnImpl extends Fn {
 
         private final CallTarget fn;
-        private final boolean[] keepAlive;
 
         public FnImpl(Presenter presenter, TruffleObject fn, int arity) {
             super(presenter);
             this.fn = Truffle.getRuntime().createCallTarget(new FnRootNode(fn, arity));
-            this.keepAlive = null;
         }
 
         @Override
         public Object invoke(Object thiz, Object... args) throws Exception {
             List<Object> all = new ArrayList<>(args.length + 1);
             all.add(thiz == null ? fn : toJavaScript(thiz));
-            for (int i = 0; i < args.length; i++) {
-                Object conv = args[i];
+            for (Object conv : args) {
                 conv = toJavaScript(conv);
                 all.add(conv);
             }
