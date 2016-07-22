@@ -54,10 +54,10 @@ import org.netbeans.html.boot.spi.Fn;
 import org.netbeans.html.json.tck.JavaScriptTCK;
 import org.netbeans.html.json.tck.KOTest;
 import org.testng.Assert;
-import static org.testng.Assert.assertEquals;
 import org.testng.SkipException;
 import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
+import static org.testng.Assert.assertEquals;
 
 /**
  *
@@ -77,7 +77,7 @@ public class TruffleJavaScriptTest {
             result = engine.eval(Source.fromText("6 * 7", "test.js").withMimeType("text/javascript"));
         } catch (Exception notSupported) {
             if (notSupported.getMessage().contains("text/javascript")) {
-                return new Object[] { new SkipTest(notSupported.getMessage()) };
+                return new Object[] { new Skip(true, notSupported.getMessage()) };
             }
         }
         assertEquals(42, result.as(Number.class).intValue(), "Executed OK");
@@ -141,16 +141,24 @@ public class TruffleJavaScriptTest {
         }
     }
 
-    public static class SkipTest {
+    public static final class Skip {
         private final String message;
+        private final boolean fail;
 
-        public SkipTest(String message) {
+        public Skip(String message) {
+            this(false, message);
+        }
+
+        Skip(boolean fail, String message) {
             this.message = message;
+            this.fail = fail;
         }
 
         @Test
         public void needsGraalVMToExecuteTheTests() {
-            throw new SkipException(message);
+            if (fail) {
+                throw new SkipException(message);
+            }
         }
     }
 }
