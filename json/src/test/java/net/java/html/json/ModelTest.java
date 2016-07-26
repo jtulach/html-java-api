@@ -47,6 +47,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.concurrent.Executor;
 import net.java.html.BrwsrCtx;
 import org.netbeans.html.context.spi.Contexts;
 import org.netbeans.html.json.spi.FunctionBinding;
@@ -56,6 +58,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 import org.testng.annotations.BeforeMethod;
@@ -360,14 +363,104 @@ public class ModelTest {
         assertEquals(last, "2nd");
     }
     
-    @Model(className = "Inner", properties = {
-        @Property(name = "x", type = int.class)
+    @Model(className = "Inner", instance = true, properties = {
+        @Property(name = "x", type = int.class),
+        @Property(name = "y", type = int.class)
     })
     static final class InnerCntrl {
-        @OnPropertyChange("x")
-        static void increment(Inner model) {
-            model.setX(model.getX() + 1);
+        private BrwsrCtx ctx;
+
+        @ModelOperation
+        void init(Inner model, BrwsrCtx ctx) {
+            this.ctx = ctx;
         }
+
+        @Function
+        void setYToTen(Inner model) {
+            assertCtx();
+            model.setY(10);
+        }
+
+        @ModelOperation
+        void modelYToTen(Inner model) {
+            assertCtx();
+            model.setY(10);
+        }
+
+        @OnPropertyChange("y")
+        void increment(Inner model) {
+            model.setX(model.getX() + 1);
+            assertCtx();
+        }
+
+        private void assertCtx() {
+            BrwsrCtx realCtx = BrwsrCtx.findDefault(InnerCntrl.class);
+            assertSame(realCtx, ctx, "Proper Ctx is provided");
+        }
+    }
+
+//   directly using setters doesn't set the context currently
+//    @Test
+//    public void incrementXOnChangeOfY() {
+//        doIncreementXOnChangeOfY(0);
+//    }
+
+    @Test
+    public void incrementXOnChangeOfYViaFunction() {
+        doIncreementXOnChangeOfY(1);
+    }
+
+    @Test
+    public void incrementXOnChangeOfYViaModel() {
+        doIncreementXOnChangeOfY(2);
+    }
+
+    private void doIncreementXOnChangeOfY(int modificationType) {
+        class Exec implements Executor {
+            int cnt;
+            @Override
+            public void execute(Runnable command) {
+                cnt++;
+                command.run();
+            }
+
+            final void assertCount(int expected, String msg) {
+                assertEquals(cnt, expected, msg);
+                cnt = 0;
+            }
+        }
+        MapModelTest.MapTechnology tech = new MapModelTest.MapTechnology();
+        Exec exec = new Exec();
+        final BrwsrCtx c = Contexts.newBuilder().
+            register(Technology.class, tech, 1).
+            register(Executor.class, exec, 5).
+            build();
+
+        Inner model = Models.bind(new Inner(), c);
+        exec.assertCount(0, "Executor not used for anything yet");
+        model.init(c);
+        exec.assertCount(1, "Executor used for initialization");
+        
+        Models.applyBindings(model);
+
+        assertEquals(model.getX(), 0, "Zero");
+        assertEquals(model.getY(), 0, "Zero too");
+        int execUse;
+        if (modificationType != 1) {
+            model.modelYToTen();
+            execUse = 3;
+        } else {
+            Object raw = Models.toRaw(model);
+            assertTrue(raw instanceof Map);
+            Map<?,?> map = (Map<?,?>) raw;
+            MapModelTest.One one = (MapModelTest.One) map.get("setYToTen");
+            assertNotNull(one);
+            one.fb.call(model, null);
+            execUse = 3;
+        }
+        assertEquals(model.getX(), 1, "One");
+        assertEquals(model.getY(), 10, "Ten");
+        exec.assertCount(execUse, "Executor used");
     }
 
     private static class MockTechnology implements Technology<Object> {
