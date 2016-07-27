@@ -37,8 +37,8 @@
             <artifactId>maven-compiler-plugin</artifactId>
             <version>2.3.2</version>
             <configuration>
-               <source>1.7</source>
-               <target>1.7</target>
+               <source>1.8</source>
+               <target>1.8</target>
             </configuration>
          </plugin>
          <plugin>
@@ -131,6 +131,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
             <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>com.dukescript.libraries</groupId>
+            <artifactId>net.java.html.lib</artifactId>
+            <version>0.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <profiles>
