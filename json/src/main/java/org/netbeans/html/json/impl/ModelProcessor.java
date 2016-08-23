@@ -384,9 +384,9 @@ public final class ModelProcessor extends AbstractProcessor {
                     }
                     w.append("        case " + i + ": ");
                     if (pgs.setter != null) {
-                        w.append("data.").append(strip(pgs.setter)).append("(TYPE.extractValue(" + tn + ".class, value)); return;\n");
+                        w.append("data.").append(pgs.setter).append("(TYPE.extractValue(" + tn + ".class, value)); return;\n");
                     } else {
-                        w.append("TYPE.replaceValue(data.").append(strip(pgs.getter)).append("(), " + tn + ".class, value); return;\n");
+                        w.append("TYPE.replaceValue(data.").append(pgs.getter).append("(), " + tn + ".class, value); return;\n");
                     }
                 }
                 w.append("      }\n");
@@ -397,7 +397,7 @@ public final class ModelProcessor extends AbstractProcessor {
                 for (int i = 0; i < propsGetSet.size(); i++) {
                     final String get = propsGetSet.get(i).getter;
                     if (get != null) {
-                        w.append("        case " + i + ": return data." + strip(get) + "();\n");
+                        w.append("        case " + i + ": return data." + get + "();\n");
                     }
                 }
                 w.append("      }\n");
@@ -1928,15 +1928,6 @@ public final class ModelProcessor extends AbstractProcessor {
             error("Two sets of properties for ", e);
         }
         return ret;
-    }
-
-    private static String strip(String s) {
-        int indx = s.indexOf("__");
-        if (indx >= 0) {
-            return s.substring(0, indx);
-        } else {
-            return s;
-        }
     }
 
     private String findDataSpecified(ExecutableElement e, OnReceive onR) {
