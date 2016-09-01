@@ -207,7 +207,9 @@ final class TrufflePresenter implements Fn.KeepAlive,
                         name("eval.js").build()
                 ).get();
                 eval = JavaInterop.asJavaFunction(Eval.class, fn);
-            } catch (IOException ex) {
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
                 throw new IllegalStateException(ex);
             }
         }
