@@ -14,6 +14,7 @@
         <netbeans.compile.on.save>NONE</netbeans.compile.on.save>
         <publicPackages>net.java.html.boot.truffle</publicPackages>
         <trufflejs>${java.home}/language/js/trufflejs.jar</trufflejs>
+        <skipTests>true</skipTests>
     </properties>
     <build>
       <plugins>
@@ -147,6 +148,9 @@
                     <exists>${trufflejs}</exists>
                 </file>
             </activation>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
             <dependencies>
                 <dependency>
                     <groupId>com.oracle.graaljs</groupId>
