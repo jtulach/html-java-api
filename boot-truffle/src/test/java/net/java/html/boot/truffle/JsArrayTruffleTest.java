@@ -42,6 +42,8 @@
  */
 package net.java.html.boot.truffle;
 
+import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.vm.PolyglotEngine;
 import java.io.Closeable;
 import java.io.IOException;
 import net.java.html.lib.Array;
@@ -49,6 +51,7 @@ import net.java.html.lib.Function;
 import org.netbeans.html.boot.spi.Fn;
 import org.testng.Assert;
 import static org.testng.Assert.assertEquals;
+import org.testng.SkipException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -58,19 +61,38 @@ public class JsArrayTruffleTest {
     private Closeable close;
     
     @BeforeMethod
-    public void initializePresenter() {
-        presenter = TrufflePresenters.create(null);
-        close = Fn.activate(presenter);
+    public void initializePresenter() throws Exception {
+        PolyglotEngine engine = PolyglotEngine.newBuilder().build();
+        int fourtyTwo;
+        try {
+            fourtyTwo = engine.eval(
+                Source.newBuilder("6 * 7").
+                mimeType("text/javascript").
+                name("meaning.js").
+                build()
+            ).as(Number.class).intValue();
+            presenter = TrufflePresenters.create(null);
+            close = Fn.activate(presenter);
+        } catch (Throwable ex) {
+            fourtyTwo = 42;
+        }
+        assertEquals(fourtyTwo, 42, "Meaning of Graal");
+
     }
 
     @AfterMethod
     public void closePresenter() throws IOException {
-        close.close();
+        if (close != null) {
+            close.close();
+        }
     }
 
 
     @Test
     public void forEachArray() {
+        if (presenter == null) {
+            throw new SkipException("No presenter found, not running on GraalVM");
+        }
         Array<String> array = new Array<>();
         array.push("Hello");
         array.push("World");
@@ -79,10 +101,33 @@ public class JsArrayTruffleTest {
 
         Assert.assertEquals(array.length(), 5, "Five words");
 
-        Array<String> lowerCaseArray = new Array<>();
-        array.forEach((Function.A1<String, Void>) (String p1) -> {
-            lowerCaseArray.push(p1.toLowerCase());
-            return null;
+        final Array<String> lowerCaseArray = new Array<>();
+        array.forEach(new Function.A1<String, Void>() {
+            @Override
+            public Void call(String p1) {
+                lowerCaseArray.push(p1.toLowerCase());
+                return null;
+            }
+
+            @Override
+            public Void call(String p1, Object p2) {
+                return call(p1);
+            }
+
+            @Override
+            public Void call(String p1, Object p2, Object p3) {
+                return call(p1);
+            }
+
+            @Override
+            public Void call(String p1, Object p2, Object p3, Object p4) {
+                return call(p1);
+            }
+
+            @Override
+            public Void call(String p1, Object p2, Object p3, Object p4, Object p5) {
+                return call(p1);
+            }
         });
 
         assertEquals(lowerCaseArray.$get(0), "hello");
