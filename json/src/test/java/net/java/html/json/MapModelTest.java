@@ -46,6 +46,7 @@ import net.java.html.BrwsrCtx;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ListIterator;
@@ -271,6 +272,35 @@ public class MapModelTest {
         assertEquals(p.getNicknames().get(1), "3");
         
         assertEquals(one.changes, 2, "Snd change");
+    }
+
+    @Test public void sort() {
+        People p = Models.bind(new People(), c);
+        p.getNicknames().add("One");
+        p.getNicknames().add("Two");
+        p.getNicknames().add("Three");
+        p.getNicknames().add("Four");
+
+        Map m = (Map)Models.toRaw(p);
+        Object o = m.get("nicknames");
+        assertNotNull(o, "List registered in the model");
+        assertEquals(o.getClass(), One.class);
+        One one = (One)o;
+
+
+        assertEquals(one.changes, 0, "No change");
+
+        Collections.sort(p.getNicknames());
+
+        Iterator<String> it = p.getNicknames().iterator();
+        assertEquals(it.next(), "Four");
+        assertEquals(it.next(), "One");
+        assertEquals(it.next(), "Three");
+        assertEquals(it.next(), "Two");
+        assertFalse(it.hasNext());
+
+
+        assertNotEquals(one.changes, 0, "At least one change");
     }
 
     @Test public void functionWithParameters() {
