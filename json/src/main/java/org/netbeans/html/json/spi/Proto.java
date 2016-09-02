@@ -934,6 +934,10 @@ public final class Proto {
                 for (Object e : (double[]) value) {
                     tmp.add(extractValue(type, e));
                 }
+            } else if (value instanceof boolean[]) {
+                for (Object e : (boolean[]) value) {
+                    tmp.add(extractValue(type, e));
+                }
             } else {
                 tmp.add(extractValue(type, value));
             }

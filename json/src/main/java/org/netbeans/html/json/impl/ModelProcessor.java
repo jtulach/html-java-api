@@ -499,8 +499,9 @@ public final class ModelProcessor extends AbstractProcessor {
                         } else {
                             if (isPrimitive(type)) {
                                 if (type.equals("char")) {
-                                    w.append("        this.prop_").append(pn).append(".add((char)TYPE.numberValue(e).");
-                                    w.append("intValue());\n");
+                                    w.append("        this.prop_").append(pn).append(".add(TYPE.charValue(e));\n");
+                                } else if (type.equals("boolean")) {
+                                    w.append("        this.prop_").append(pn).append(".add(TYPE.boolValue(e));\n");
                                 } else {
                                     w.append("        this.prop_").append(pn).append(".add(TYPE.numberValue(e).");
                                     w.append(type).append("Value());\n");
