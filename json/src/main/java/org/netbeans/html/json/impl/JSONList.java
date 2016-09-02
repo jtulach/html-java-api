@@ -172,6 +172,12 @@ public final class JSONList<T> extends ArrayList<T> {
     }
 
     @Override
+    protected void removeRange(int fromIndex, int toIndex) {
+        super.removeRange(fromIndex, toIndex);
+        notifyChange();
+    }
+
+    @Override
     public String toString() {
         Iterator<T> it = iterator();
         if (!it.hasNext()) {

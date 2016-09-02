@@ -274,6 +274,34 @@ public class MapModelTest {
         assertEquals(one.changes, 2, "Snd change");
     }
 
+    @Test public void subListChange() {
+        People p = Models.bind(new People(), c);
+        p.getNicknames().add("One");
+        p.getNicknames().add("Two");
+        p.getNicknames().add("Three");
+
+        Map m = (Map)Models.toRaw(p);
+        Object o = m.get("nicknames");
+        assertNotNull(o, "List registered in the model");
+        assertEquals(o.getClass(), One.class);
+        One one = (One)o;
+
+
+        assertEquals(one.changes, 0, "No change");
+
+        p.getNicknames().subList(1, 2).clear();
+
+        assertEquals(p.getNicknames().size(), 2, "Two elements");
+
+        ListIterator<String> it = p.getNicknames().listIterator(0);
+        assertEquals(it.next(), "One");
+        assertEquals(it.next(), "Three");
+        assertFalse(it.hasNext());
+
+
+        assertEquals(one.changes, 1, "One change");
+    }
+
     @Test public void sort() {
         People p = Models.bind(new People(), c);
         p.getNicknames().add("One");
