@@ -329,6 +329,10 @@ public class MapModelTest {
 
 
         assertNotEquals(one.changes, 0, "At least one change");
+
+        if (isJDK8()) {
+            assertEquals(one.changes, 1, "Exactly one echange");
+        }
     }
 
     @Test public void functionWithParameters() {
@@ -392,6 +396,15 @@ public class MapModelTest {
         assertEquals(cnt[1], 1, "Callback called");
         assertEquals(cnt[0], 3, "Internal state kept");
         assertEquals(incThreeTimes.cnt, 3, "Property change delivered three times");
+    }
+
+    private static boolean isJDK8() {
+        try {
+            Class.forName("java.lang.FunctionalInterface");
+            return true;
+        } catch (ClassNotFoundException ex) {
+            return false;
+        }
     }
     
     static final class One {
