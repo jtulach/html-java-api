@@ -135,16 +135,19 @@ final class Knockout extends WeakReference<Object> {
         body =
           "if (model) {\n"
         + "  var koProp = model[prop];\n"
-        + "  if (koProp && koProp['valueHasMutated']) {\n"
-        + "    if ((oldValue !== null || newValue !== null)) {\n"
-        + "      koProp['valueHasMutated'](newValue);\n"
-        + "    } else if (koProp['valueHasMutated']) {\n"
-        + "      koProp['valueHasMutated']();\n"
+        + "  if (koProp) {\n"
+        + "    var koFire = koProp['valueHasMutated'];\n"
+        + "    if (koFire) {\n"
+        + "      if (oldValue !== null || newValue !== null) {\n"
+        + "        koFire(newValue);\n"
+        + "      } else {\n"
+        + "        koFire();\n"
+        + "      }\n"
         + "    }\n"
         + "  }\n"
         + "}\n"
     )
-    public native static void valueHasMutated(
+    native static void valueHasMutated(
         Object model, String prop, Object oldValue, Object newValue
     );
 
