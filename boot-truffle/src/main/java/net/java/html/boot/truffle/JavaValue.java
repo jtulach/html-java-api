@@ -58,7 +58,7 @@ abstract class JavaValue {
         if (conv instanceof Character) {
             conv = (int) (Character) conv;
         }
-        if (conv == null || conv.getClass().getSimpleName().equals("$JsCallbacks$")) { // NOI18N
+        if (conv == null || conv.getClass().getName().endsWith(".$JsCallbacks$")) { // NOI18N
             conv = JavaInterop.asTruffleObject(conv);
         } else if (!isJSReady(conv)) {
             conv = new JavaObject(conv);
