@@ -95,9 +95,10 @@ public class InfinityTest {
     public void nullRemainsAfterClone() {
         Infinity infinity = new Infinity();
         infinity.setNext(null);
-        infinity = infinity.clone();
-        assertNull(infinity.getNext(), "Remains null");
-        assertNull(infinity.getNext(), "Again");
+        Infinity clone = infinity.clone();
+        assertNull(clone.getNext(), "Remains null");
+        assertNull(clone.getNext(), "Again");
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
     }
 
     @Test
@@ -105,9 +106,9 @@ public class InfinityTest {
         Infinity infinity = new Infinity();
         Infinity n = new Infinity();
         infinity.setNext(n);
-        infinity = infinity.clone();
-        assertEquals(infinity.getNext(), n, "Remains n");
-        assertEquals(infinity.getNext(), n, "Again n");
+        Infinity clone = infinity.clone();
+        assertEquals(clone.getNext(), n, "Remains n");
+        assertEquals(clone.getNext(), n, "Again n");
     }
 
     @Test
@@ -115,9 +116,10 @@ public class InfinityTest {
         Infinity infinity = new Infinity();
         Infinity n = new Infinity();
         infinity.setNext(n);
-        infinity = infinity.clone();
-        assertEquals(infinity.getNext(), n, "Remains n");
-        assertEquals(infinity.getNext(), n, "Again n");
+        Infinity clone = infinity.clone();
+        assertEquals(clone.getNext(), n, "Remains n");
+        assertEquals(clone.getNext(), n, "Again n");
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
     }
 
     @Test
@@ -125,6 +127,7 @@ public class InfinityTest {
         Infinity infinity = new Infinity();
         infinity.setNext(null);
         assertEquals("{\"next\":null,\"address\":{\"place\":null}}", infinity.toString());
+        infinity.hashCode();
     }
 
     @Test
@@ -137,6 +140,7 @@ public class InfinityTest {
         assertNull(clone.getNext(), "Clone Remains null");
         assertNotNull(clone.getAddress(), "Clone Address is initialized");
         assertEquals(infinity.toString(), clone.toString());
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
     }
 
 }
