@@ -580,18 +580,41 @@ public final class ModelProcessor extends AbstractProcessor {
                 w.write("    if (o == this) return true;\n");
                 w.write("    if (!(o instanceof " + className + ")) return false;\n");
                 w.write("    " + className + " p = (" + className + ")o;\n");
+                boolean thisToNull = false;
                 for (Prprt p : props) {
-                    w.write("    if (!TYPE.isSame(prop_" + p.name() + ", p.prop_" + p.name() + ")) return false;\n");
+                    boolean[] isModel = {false};
+                    boolean[] isEnum = {false};
+                    boolean isPrimitive[] = {false};
+                    checkType(p, isModel, isEnum, isPrimitive);
+                    if (isModel[0]) {
+                        w.write("    if (!TYPE.isSame(thisToNull(prop_" + p.name() + "), p.thisToNull(p.prop_" + p.name() + "))) return false;\n");
+                        thisToNull = true;
+                    } else {
+                        w.write("    if (!TYPE.isSame(prop_" + p.name() + ", p.prop_" + p.name() + ")) return false;\n");
+                    }
                 }
                 w.write("    return true;\n");
                 w.write("  }\n");
                 w.write("  public int hashCode() {\n");
                 w.write("    int h = " + className + ".class.getName().hashCode();\n");
                 for (Prprt p : props) {
-                    w.write("    h = TYPE.hashPlus(prop_" + p.name() + ", h);\n");
+                    boolean[] isModel = {false};
+                    boolean[] isEnum = {false};
+                    boolean isPrimitive[] = {false};
+                    checkType(p, isModel, isEnum, isPrimitive);
+                    if (isModel[0]) {
+                        w.write("    h = TYPE.hashPlus(thisToNull(prop_" + p.name() + "), h);\n");
+                    } else {
+                        w.write("    h = TYPE.hashPlus(prop_" + p.name() + ", h);\n");
+                    }
                 }
                 w.write("    return h;\n");
                 w.write("  }\n");
+                if (thisToNull) {
+                    w.write("  private Object thisToNull(Object value) {\n");
+                    w.write("    return value == this ? null : value;\n");
+                    w.write("  }\n");
+                }
                 w.write("}\n");
             } finally {
                 w.close();
@@ -1728,8 +1751,10 @@ public final class ModelProcessor extends AbstractProcessor {
             w.write(sep);
             w.append("    sb.append('\"').append(\"" + p.name() + "\")");
                 w.append(".append('\"').append(\":\");\n");
-            w.append("    sb.append(TYPE.toJSON(prop_");
-            w.append(p.name()).append("));\n");
+            String tn = typeName(p);
+            String[] gs = toGetSet(p.name(), tn, p.array());
+            w.append("    sb.append(TYPE.toJSON(");
+            w.append(gs[0]).append("()));\n");
             sep =    "    sb.append(',');\n";
         }
         w.write("    sb.append('}');\n");
@@ -1754,7 +1779,7 @@ public final class ModelProcessor extends AbstractProcessor {
                     w.write("    ret.prop_" + p.name() + " = " + gs[0] + "();\n");
                     continue;
                 }
-                w.write("    ret.prop_" + p.name() + " =  " + gs[0] + "()  == null ? null : " + gs[0] + "().clone();\n");
+                w.write("    ret.prop_" + p.name() + " =  prop_" + p.name() + " == null ? null : prop_" + p.name() + " == this ? ret : " + gs[0] + "().clone();\n");
             } else {
                 w.write("    proto.cloneList(ret." + gs[0] + "(), ctx, prop_" + p.name() + ");\n");
             }

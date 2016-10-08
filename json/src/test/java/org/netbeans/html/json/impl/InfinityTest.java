@@ -51,7 +51,8 @@ import static org.testng.Assert.assertSame;
 import org.testng.annotations.Test;
 
 @Model(className = "Infinity", properties = {
-    @Property(name = "next", type = Infinity.class)
+    @Property(name = "next", type = Infinity.class),
+    @Property(name = "address", type = Address.class)
 })
 public class InfinityTest {
     @Test
@@ -89,4 +90,53 @@ public class InfinityTest {
         assertEquals(infinity.getNext(), n, "Remains n");
         assertEquals(infinity.getNext(), n, "Again n");
     }
+
+    @Test
+    public void nullRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        infinity.setNext(null);
+        infinity = infinity.clone();
+        assertNull(infinity.getNext(), "Remains null");
+        assertNull(infinity.getNext(), "Again");
+    }
+
+    @Test
+    public void ownValueRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        Infinity n = new Infinity();
+        infinity.setNext(n);
+        infinity = infinity.clone();
+        assertEquals(infinity.getNext(), n, "Remains n");
+        assertEquals(infinity.getNext(), n, "Again n");
+    }
+
+    @Test
+    public void hashCodeRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        Infinity n = new Infinity();
+        infinity.setNext(n);
+        infinity = infinity.clone();
+        assertEquals(infinity.getNext(), n, "Remains n");
+        assertEquals(infinity.getNext(), n, "Again n");
+    }
+
+    @Test
+    public void simpleToStringWithNull() {
+        Infinity infinity = new Infinity();
+        infinity.setNext(null);
+        assertEquals("{\"next\":null,\"address\":{\"place\":null}}", infinity.toString());
+    }
+
+    @Test
+    public void toStringWithNullAndClone() {
+        Infinity infinity = new Infinity();
+        infinity.setNext(null);
+        Infinity clone = infinity.clone();
+        assertNull(infinity.getNext(), "Remains null");
+        assertNotNull(infinity.getAddress(), "Address is initialized");
+        assertNull(clone.getNext(), "Clone Remains null");
+        assertNotNull(clone.getAddress(), "Clone Address is initialized");
+        assertEquals(infinity.toString(), clone.toString());
+    }
+
 }
