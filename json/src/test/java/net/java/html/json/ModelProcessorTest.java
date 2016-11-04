@@ -144,6 +144,75 @@ public class ModelProcessorTest {
         }
     }
 
+    @Test public void warnOnDuplicated() throws IOException {
+        String html = "<html><body>"
+            + "</body></html>";
+        String code = "package x.y.z;\n"
+            + "import net.java.html.json.Model;\n"
+            + "import net.java.html.json.Property;\n"
+            + "import net.java.html.json.ComputedProperty;\n"
+            + "@Model(className=\"XModel\", properties={\n"
+            + "  @Property(name=\"prop1\", type=int.class),\n"
+            + "  @Property(name=\"prop2\", type=int.class)\n"
+            + "})\n"
+            + "class X {\n"
+            + "    @ComputedProperty static int y(int prop1) {\n"
+            + "        return prop1;\n"
+            + "    }\n"
+            + "    @ComputedProperty static int y(int prop1, int prop2) {\n"
+            + "        return prop2;\n"
+            + "    }\n"
+            + "}\n";
+
+        Compile c = Compile.create(html, code);
+        assertFalse(c.getErrors().isEmpty(), "One error: " + c.getErrors());
+        boolean ok = false;
+        StringBuilder msgs = new StringBuilder();
+        for (Diagnostic<? extends JavaFileObject> e : c.getErrors()) {
+            String msg = e.getMessage(Locale.ENGLISH);
+            if (msg.contains("Cannot have the property y defined twice")) {
+                ok = true;
+            }
+            msgs.append("\n").append(msg);
+        }
+        if (!ok) {
+            fail("Should contain warning duplicated property:" + msgs);
+        }
+    }
+
+    @Test public void warnOnDuplicatedWithNormalProp() throws IOException {
+        String html = "<html><body>"
+            + "</body></html>";
+        String code = "package x.y.z;\n"
+            + "import net.java.html.json.Model;\n"
+            + "import net.java.html.json.Property;\n"
+            + "import net.java.html.json.ComputedProperty;\n"
+            + "@Model(className=\"XModel\", properties={\n"
+            + "  @Property(name=\"prop1\", type=int.class),\n"
+            + "  @Property(name=\"prop2\", type=int.class)\n"
+            + "})\n"
+            + "class X {\n"
+            + "    @ComputedProperty static int prop2(int prop1) {\n"
+            + "        return prop1;\n"
+            + "    }\n"
+            + "}\n";
+
+        Compile c = Compile.create(html, code);
+        assertFalse(c.getErrors().isEmpty(), "One error: " + c.getErrors());
+        boolean ok = false;
+        StringBuilder msgs = new StringBuilder();
+        for (Diagnostic<? extends JavaFileObject> e : c.getErrors()) {
+            String msg = e.getMessage(Locale.ENGLISH);
+            if (msg.contains("Cannot have the property prop2 defined twice")) {
+                ok = true;
+            }
+            msgs.append("\n").append(msg);
+        }
+        if (!ok) {
+            fail("Should contain warning duplicated property:" + msgs);
+        }
+    }
+
     @Test public void tooManyProperties() throws IOException {
         manyProperties(255, false, 0);
     }
@@ -687,7 +756,7 @@ public class ModelProcessorTest {
             + "}\n"
         );
         res.assertErrors();
-        res.assertError("Cannot have the name");
+        res.assertError("Cannot have the property");
     }
 
     @Test public void propertyAndComputedOneCollide() throws IOException {
@@ -702,7 +771,7 @@ public class ModelProcessorTest {
             + "}\n"
         );
         res.assertErrors();
-        res.assertError("Cannot have the name");
+        res.assertError("Cannot have the property");
     }
 
     @Test public void onWebSocketJustTwoArgs() throws IOException {

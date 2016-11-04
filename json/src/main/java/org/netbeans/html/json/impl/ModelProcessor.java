@@ -742,7 +742,7 @@ public final class ModelProcessor extends AbstractProcessor {
 
             for (int i = 0; i < props.size(); i++) {
                 if (props.get(i).name.equals(p.name())) {
-                    error("Cannot have the name " + p.name() + " defined twice", where);
+                    error("Cannot have the property " + p.name() + " defined twice", where);
                     ok = false;
                 }
             }
@@ -766,7 +766,7 @@ public final class ModelProcessor extends AbstractProcessor {
         Map<String,Collection<String[]>> deps
     ) throws IOException {
         boolean ok = true;
-        for (Element e : arr) {
+        NEXT_ANNOTATION: for (Element e : arr) {
             if (e.getKind() != ElementKind.METHOD) {
                 continue;
             }
@@ -821,6 +821,15 @@ public final class ModelProcessor extends AbstractProcessor {
                         ok = false;
                         error(sn + " cannot return " + toCheck, e);
                     }
+                }
+            }
+
+            final String propertyName = e.getSimpleName().toString();
+            for (GetSet prop : props) {
+                if (propertyName.equals(prop.name)) {
+                    error("Cannot have the property " + propertyName + " defined twice", e);
+                    ok = false;
+                    continue NEXT_ANNOTATION;
                 }
             }
 
@@ -885,7 +894,7 @@ public final class ModelProcessor extends AbstractProcessor {
 
             if (write == null) {
                 props.add(new GetSet(
-                    e.getSimpleName().toString(),
+                    propertyName,
                     gs[0],
                     null,
                     tn,
@@ -899,7 +908,7 @@ public final class ModelProcessor extends AbstractProcessor {
                 w.write("  }\n");
 
                 props.add(new GetSet(
-                    e.getSimpleName().toString(),
+                    propertyName,
                     gs[0],
                     gs[4],
                     tn,
