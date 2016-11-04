@@ -1762,8 +1762,17 @@ public final class ModelProcessor extends AbstractProcessor {
                 w.append(".append('\"').append(\":\");\n");
             String tn = typeName(p);
             String[] gs = toGetSet(p.name(), tn, p.array());
-            w.append("    sb.append(TYPE.toJSON(");
-            w.append(gs[0]).append("()));\n");
+            boolean isModel[] = { false };
+            boolean isEnum[] = { false };
+            boolean isPrimitive[] = { false };
+            checkType(p, isModel, isEnum, isPrimitive);
+            if (isModel[0]) {
+                w.append("    sb.append(TYPE.toJSON(thisToNull(this.prop_");
+                w.append(p.name()).append(")));\n");
+            } else {
+                w.append("    sb.append(TYPE.toJSON(");
+                w.append(gs[0]).append("()));\n");
+            }
             sep =    "    sb.append(',');\n";
         }
         w.write("    sb.append('}');\n");

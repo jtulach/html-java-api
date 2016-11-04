@@ -125,9 +125,14 @@ public class InfinityTest {
     @Test
     public void simpleToStringWithNull() {
         Infinity infinity = new Infinity();
-        infinity.setNext(null);
+        assertNotNull(infinity.getAddress(), "Initialized will be stored as object");
         assertEquals("{\"next\":null,\"address\":{\"place\":null}}", infinity.toString());
         infinity.hashCode();
+
+        Infinity second = new Infinity();
+        assertEquals("{\"next\":null,\"address\":null}", second.toString(), "Uninitialized is turned into null");
+
+        second.hashCode();
     }
 
     @Test
