@@ -72,6 +72,8 @@ final class TrufflePresenter implements Fn.KeepAlive,
     private final Executor exc;
     private final CallTarget isNull;
     private final CallTarget isArray;
+    private Apply apply;
+    private TruffleObject jsNull;
 
     TrufflePresenter(Executor exc, TruffleObject eval) {
         this.exc = exc;
@@ -122,6 +124,10 @@ final class TrufflePresenter implements Fn.KeepAlive,
             mimeType("text/javascript").
             build();
         getEval().eval(src.getCode());
+    }
+
+    interface Apply {
+        public Object apply(Object... args);
     }
 
     interface WrapArray {
@@ -200,13 +206,17 @@ final class TrufflePresenter implements Fn.KeepAlive,
     private Eval getEval() {
         if (eval == null) {
             try {
-                PolyglotEngine engine = PolyglotEngine.newBuilder().build();
-                TruffleObject fn = (TruffleObject) engine.eval(
-                    Source.newBuilder("eval.bind(this)").
-                        mimeType("text/javascript").
-                        name("eval.js").build()
-                ).get();
-                eval = JavaInterop.asJavaFunction(Eval.class, fn);
+                final PolyglotEngine engine = PolyglotEngine.newBuilder().build();
+                eval = new Eval() {
+                    @Override
+                    public Object eval(String code) {
+                        Source source = Source.newBuilder(code).
+                            mimeType("text/javascript").
+                            name("snippet.js").
+                            build();
+                        return engine.eval(source).get();
+                    }
+                };
             } catch (RuntimeException ex) {
                 throw ex;
             } catch (Exception ex) {
@@ -231,24 +241,46 @@ final class TrufflePresenter implements Fn.KeepAlive,
         return copy;
     }
 
+    private Apply getApply() {
+        if (apply == null) {
+            TruffleObject fn = (TruffleObject) getEval().eval("(function() {\n"
+                + "  var args = Array.prototype.slice.call(arguments);\n"
+                + "  var fn = args.shift();\n"
+                + "  var thiz = args.shift();\n"
+                + "  return fn.apply(thiz, args);\n"
+                + "}).bind(this)"
+            );
+            apply = JavaInterop.asJavaFunction(Apply.class, fn);
+        }
+        return apply;
+    }
+
+    private TruffleObject jsNull() {
+        if (jsNull == null) {
+            jsNull = (TruffleObject) getEval().eval("null"); // NOI18N
+        }
+        return jsNull;
+    }
+
     private class FnImpl extends Fn {
 
-        private final CallTarget fn;
+        private final TruffleObject fn;
 
         public FnImpl(Presenter presenter, TruffleObject fn, int arity) {
             super(presenter);
-            this.fn = Truffle.getRuntime().createCallTarget(new FnRootNode(fn, arity));
+            this.fn = fn;
         }
 
         @Override
         public Object invoke(Object thiz, Object... args) throws Exception {
             List<Object> all = new ArrayList<>(args.length + 1);
-            all.add(thiz == null ? fn : toJavaScript(thiz));
+            all.add(fn);
+            all.add(thiz == null ? jsNull() : toJavaScript(thiz));
             for (Object conv : args) {
                 conv = toJavaScript(conv);
                 all.add(conv);
             }
-            Object ret = fn.call(all.toArray());
+            Object ret = getApply().apply(all.toArray());
             if (ret instanceof JavaValue) {
                 ret = ((JavaValue)ret).get();
             }
