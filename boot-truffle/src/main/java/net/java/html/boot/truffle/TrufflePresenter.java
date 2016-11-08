@@ -95,7 +95,9 @@ final class TrufflePresenter implements Fn.KeepAlive,
     private FnImpl defineImpl(String code, String[] names, boolean[] keepAlive) {
         StringBuilder sb = new StringBuilder();
         sb.append("(function() {\n");
-        sb.append("  return function(");
+        sb.append("  var args = Array.prototype.slice.call(arguments);\n");
+        sb.append("  var thiz = args.shift();\n");
+        sb.append("  return (function(");
         String sep = "";
         for (String n : names) {
             sb.append(sep).append(n);
@@ -103,8 +105,8 @@ final class TrufflePresenter implements Fn.KeepAlive,
         }
         sb.append(") {\n");
         sb.append(code);
-        sb.append("\n  };\n");
-        sb.append("})()\n");
+        sb.append("\n  }).apply(thiz, args);\n");
+        sb.append("})\n");
 
         TruffleObject fn = (TruffleObject) getEval().eval(sb.toString());
         return new FnImpl(this, fn, names.length);
@@ -207,16 +209,12 @@ final class TrufflePresenter implements Fn.KeepAlive,
         if (eval == null) {
             try {
                 final PolyglotEngine engine = PolyglotEngine.newBuilder().build();
-                eval = new Eval() {
-                    @Override
-                    public Object eval(String code) {
-                        Source source = Source.newBuilder(code).
-                            mimeType("text/javascript").
-                            name("snippet.js").
-                            build();
-                        return engine.eval(source).get();
-                    }
-                };
+                TruffleObject fn = (TruffleObject) engine.eval(
+                    Source.newBuilder("eval.bind(this)").
+                        mimeType("text/javascript").
+                        name("eval.js").build()
+                ).get();
+                eval = JavaInterop.asJavaFunction(Eval.class, fn);
             } catch (RuntimeException ex) {
                 throw ex;
             } catch (Exception ex) {
@@ -246,8 +244,7 @@ final class TrufflePresenter implements Fn.KeepAlive,
             TruffleObject fn = (TruffleObject) getEval().eval("(function() {\n"
                 + "  var args = Array.prototype.slice.call(arguments);\n"
                 + "  var fn = args.shift();\n"
-                + "  var thiz = args.shift();\n"
-                + "  return fn.apply(thiz, args);\n"
+                + "  return fn.apply(null, args);\n"
                 + "}).bind(this)"
             );
             apply = JavaInterop.asJavaFunction(Apply.class, fn);
