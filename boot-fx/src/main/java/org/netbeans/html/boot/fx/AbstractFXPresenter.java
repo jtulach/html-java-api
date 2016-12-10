@@ -297,6 +297,9 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         if (toReturn instanceof Object[]) {
             return convertArrays((Object[])toReturn);
         } else {
+            if (toReturn instanceof Character) {
+                return (int)(Character)toReturn;
+            }
             return toReturn;
         }
     }
@@ -374,6 +377,9 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
                             !conv.getClass().getSimpleName().equals("$JsCallbacks$") // NOI18N
                         ) {
                             conv = new Weak(conv);
+                        }
+                        if (conv instanceof Character) {
+                            conv = (int)(Character)conv;
                         }
                     }
                     all.add(conv);
