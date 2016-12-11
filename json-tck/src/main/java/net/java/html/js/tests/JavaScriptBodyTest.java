@@ -444,8 +444,22 @@ public class JavaScriptBodyTest {
 
     @KOTest
     public void globalStringAvailable() throws Exception {
-        GlobalString.init();
+        assertEquals("HTML/Java", GlobalString.init());
         assertEquals("HTML/Java", Bodies.readGlobalString());
+    }
+
+    @KOTest
+    public void globalValueInCallbackAvailable() throws Exception {
+        final String[] value = { null, null };
+        Bodies.callback(new Runnable() {
+            @Override
+            public void run() {
+                value[0] = Global2String.init();
+                value[1] = Bodies.readGlobal2String();
+            }
+        });
+        assertEquals(value[0], "NetBeans");
+        assertEquals(value[1], "NetBeans");
     }
     
     private static class R implements Runnable {

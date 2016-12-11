@@ -1,4 +1,4 @@
-/**
+/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright 2013-2014 Oracle and/or its affiliates. All rights reserved.
@@ -40,13 +40,5 @@
  * Version 2 license, then the option applies only if the new code is
  * made subject to such option by the copyright holder.
  */
-package net.java.html.js.tests;
+var global2String = 'NetBeans';
 
-import net.java.html.js.JavaScriptBody;
-import net.java.html.js.JavaScriptResource;
-
-@JavaScriptResource("global.js")
-class GlobalString {
-    @JavaScriptBody(args = {}, body = "return globalString;")
-    public static native String init();
-}

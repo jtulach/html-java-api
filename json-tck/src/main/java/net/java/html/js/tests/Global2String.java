@@ -45,8 +45,8 @@ package net.java.html.js.tests;
 import net.java.html.js.JavaScriptBody;
 import net.java.html.js.JavaScriptResource;
 
-@JavaScriptResource("global.js")
-class GlobalString {
-    @JavaScriptBody(args = {}, body = "return globalString;")
+@JavaScriptResource("global2.js")
+class Global2String {
+    @JavaScriptBody(args = {}, body = "return global2String;")
     public static native String init();
 }

@@ -239,6 +239,9 @@ final class Bodies {
     
     @JavaScriptBody(args = {}, body = "return globalString;")
     static native String readGlobalString();
+
+    @JavaScriptBody(args = {}, body = "return global2String;")
+    static native String readGlobal2String();
     
     static String problematicString() {
         return "{\n" +
