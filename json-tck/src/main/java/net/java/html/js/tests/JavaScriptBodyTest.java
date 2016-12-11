@@ -458,8 +458,8 @@ public class JavaScriptBodyTest {
                 value[1] = Bodies.readGlobal2String();
             }
         });
-        assertEquals(value[0], "NetBeans");
-        assertEquals(value[1], "NetBeans");
+        assertEquals(value[0], "NetBeans", "As a returned value from defining method");
+        assertEquals(value[1], "NetBeans", "As read later by different method");
     }
     
     private static class R implements Runnable {
