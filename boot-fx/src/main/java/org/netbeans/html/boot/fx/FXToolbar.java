@@ -234,7 +234,7 @@ final class FXToolbar extends ToolBar {
     /**
      * Button to resize the browser window.
      * Taken from NetBeans. Kept GPLwithCPEx license.
-     * Portions Copyrighted 2012 Sun Microsystems, Inc.
+     * Portions Copyright 2012 Oracle.
      *
      * @author S. Aubrecht
      */
