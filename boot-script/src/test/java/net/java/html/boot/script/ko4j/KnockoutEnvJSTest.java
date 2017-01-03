@@ -108,7 +108,8 @@ public final class KnockoutEnvJSTest extends KnockoutTCK {
         baseUri = DynamicHTTP.initServer();
 
         final Fn.Presenter p = Scripts.createPresenter(KOCase.JS);
-        InputStream is = KnockoutEnvJSTest.class.getResourceAsStream("env.nashorn.1.2-debug.js");
+        URL envNashorn = new URL("https://bugs.openjdk.java.net/secure/attachment/11894/env.nashorn.1.2-debug.js");
+        InputStream is = envNashorn.openStream();
         p.loadScript(new InputStreamReader(is));
         is.close();
 
