@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -932,6 +932,10 @@ public final class Proto {
                 }
             } else if (value instanceof double[]) {
                 for (Object e : (double[]) value) {
+                    tmp.add(extractValue(type, e));
+                }
+            } else if (value instanceof boolean[]) {
+                for (Object e : (boolean[]) value) {
                     tmp.add(extractValue(type, e));
                 }
             } else {

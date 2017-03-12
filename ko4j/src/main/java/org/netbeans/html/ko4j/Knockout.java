@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -72,7 +72,7 @@ final class Knockout extends WeakReference<Object> {
         "if (property === null) ret = object;\n" + 
         "else if (object === null) ret = null;\n" + 
         "else ret = object[property];\n" + 
-        "return ret ? ko.utils.unwrapObservable(ret) : null;"
+        "return ret ? ko['utils']['unwrapObservable'](ret) : null;"
     )
     static Object getProperty(Object object, String property) {
         return null;
@@ -135,16 +135,19 @@ final class Knockout extends WeakReference<Object> {
         body =
           "if (model) {\n"
         + "  var koProp = model[prop];\n"
-        + "  if (koProp && koProp['valueHasMutated']) {\n"
-        + "    if ((oldValue !== null || newValue !== null)) {\n"
-        + "      koProp['valueHasMutated'](newValue);\n"
-        + "    } else if (koProp['valueHasMutated']) {\n"
-        + "      koProp['valueHasMutated']();\n"
+        + "  if (koProp) {\n"
+        + "    var koFire = koProp['valueHasMutated'];\n"
+        + "    if (koFire) {\n"
+        + "      if (oldValue !== null || newValue !== null) {\n"
+        + "        koFire(newValue);\n"
+        + "      } else {\n"
+        + "        koFire();\n"
+        + "      }\n"
         + "    }\n"
         + "  }\n"
         + "}\n"
     )
-    public native static void valueHasMutated(
+    native static void valueHasMutated(
         Object model, String prop, Object oldValue, Object newValue
     );
 

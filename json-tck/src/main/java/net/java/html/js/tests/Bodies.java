@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -64,9 +64,6 @@ final class Bodies {
     @JavaScriptBody(args = {"r"}, wait4js = false, keepAlive = false, javacall = true, body = "r.@java.lang.Runnable::run()();")
     static native void asyncCallback(Runnable r);
     
-    @JavaScriptBody(args = {"c"}, javacall = true, body = "return c.@java.util.concurrent.Callable::call()();")
-    static native Object callback(Callable<? extends Object> c);
-
     @JavaScriptBody(args = {"c", "v"}, javacall = true, body = "var arr = c.@java.util.concurrent.Callable::call()(); arr.push(v); return arr;")
     static native Object callbackAndPush(Callable<String[]> c, String v);
     
@@ -95,6 +92,18 @@ final class Bodies {
         "return c.@net.java.html.js.tests.Sum::sum(II)(a, b);"
     )
     public static native int sumIndirect(Sum c, int a, int b);
+
+    @JavaScriptBody(args = { "c" }, javacall = true, body =
+        "return {\n" +
+        "  'sum' : function(a,b) {\n" +
+        "     return c.@net.java.html.js.tests.Sum::sum(II)(a, b);\n" +
+        "  }\n" +
+        "};\n"
+    )
+    public static native Object sumDelayed(Sum c);
+
+    @JavaScriptBody(args = { "sum", "a", "b" }, body = "return sum.sum(a, b);")
+    public static native int sumNow(Object sum, int a, int b);
     
     @JavaScriptBody(args = { "arr", "index" }, body = "return arr[index];")
     public static native Object select(Object[] arr, int index);
@@ -107,6 +116,9 @@ final class Bodies {
 
     @JavaScriptBody(args = { "b" }, body = "return typeof b;")
     public static native String typeof(boolean b);
+
+    @JavaScriptBody(args = { "o" }, body = "return o.toString();")
+    public static native String toString(Object o);
 
     @JavaScriptBody(args = { "o" }, body = "return Array.isArray(o);")
     public static native boolean isArray(Object o);
@@ -195,6 +207,32 @@ final class Bodies {
     )
     static native int gc(double max);
 
+    @JavaScriptBody(args = {}, body = ""
+        + "var o = {};\n"
+        + "return o.x;\n"
+    )
+    static native Object unknown();
+
+    @JavaScriptBody(args = {}, body = ""
+        + "return new Array(2);\n"
+    )
+    static native Object[] unknownArray();
+
+    @JavaScriptBody(args = { "sum" }, javacall = true, body = ""
+        + "var arr = [];\n"
+        + "arr[1] = null;\n"
+        + "arr[2] = 1;\n"
+        + "return sum.@net.java.html.js.tests.Sum::sumNonNull([Ljava/lang/Object;)(arr);\n"
+    )
+    static native int sumNonNull(Sum sum);
+
+    @JavaScriptBody(args = { "sum", "p" }, javacall = true, body = ""
+        + "var obj = {};\n"
+        + "obj.x = 1;\n"
+        + "return sum.@net.java.html.js.tests.Sum::checkNonNull(Ljava/lang/Object;)(obj[p]);\n"
+    )
+    static native boolean nonNull(Sum sum, String p);
+
     @JavaScriptBody(args = {}, javacall = true, body = 
         "return @net.java.html.js.tests.Bodies::problematicString()();"
     )
@@ -204,6 +242,21 @@ final class Bodies {
         "return sum.@net.java.html.js.tests.Sum::all(ZBSIJFDCLjava/lang/String;)(false, 1, 2, 3, 5, 6, 7, 32, 'TheEND');\n"
     )
     static native String primitiveTypes(Sum sum);
+
+    @JavaScriptBody(args = { "call" }, javacall = true, body = ""
+        + "var b = call.@java.util.concurrent.Callable::call()();\n"
+        + "return b ? 'yes' : 'no';\n"
+    )
+    static native String yesNo(Callable<Boolean> call);
+
+    @JavaScriptBody(args = {"arr", "val"}, body = "return arr[0] === val;")
+    public static native boolean isInArray(Object[] arr, Object val);
+    
+    @JavaScriptBody(args = {}, body = "return globalString;")
+    static native String readGlobalString();
+
+    @JavaScriptBody(args = {}, body = "return global2String;")
+    static native String readGlobal2String();
     
     static String problematicString() {
         return "{\n" +

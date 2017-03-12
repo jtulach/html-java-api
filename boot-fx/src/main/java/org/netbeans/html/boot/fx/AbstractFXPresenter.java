@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -47,10 +47,16 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,6 +65,7 @@ import javafx.scene.Parent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import netscape.javascript.JSException;
 import netscape.javascript.JSObject;
 import org.netbeans.html.boot.spi.Fn;
 
@@ -76,6 +83,9 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
     // transient - e.g. not cloneable
     private JSObject arraySize;
     private JSObject wrapArrImpl;
+    private JSObject newPOJOImpl;
+    private Object undefined;
+    private JavaValues values;
 
     @Override
     protected AbstractFXPresenter clone() {
@@ -83,6 +93,9 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
             AbstractFXPresenter p = (AbstractFXPresenter) super.clone();
             p.arraySize = null;
             p.wrapArrImpl = null;
+            p.undefined = null;
+            p.newPOJOImpl = null;
+            p.values = null;
             return p;
         } catch (CloneNotSupportedException ex) {
             throw new IllegalStateException(ex);
@@ -207,6 +220,13 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         return wrapArr;
     }
 
+    private final JavaValues values() {
+        if (values == null) {
+            values = new JavaValues();
+        }
+        return values;
+    }
+
     private final JSObject wrapArrFn() {
         if (wrapArrImpl == null) {
             try {
@@ -223,18 +243,50 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         return wrapArrImpl;
     }
 
-    final Object checkArray(Object val) {
-        if (!(val instanceof JSObject)) {
-            return val;
+    JSObject createPOJOWrapper(int hash, int id) {
+        if (newPOJOImpl == null) {
+            try {
+                newPOJOImpl = (JSObject) defineJSFn(
+                    "var k = {};\n" +
+                    "k.fxBrwsrId = function(hash, id) {\n" +
+                    "  return {\n" +
+                    "    'fxBrwsrId' : function(callback) { callback.hashAndId(hash, id); }\n" +
+                    "  }\n" +
+                    "};\n" +
+                    "return k;\n", new String[] { "callback" }, null
+                ).invokeImpl(null, false);
+            } catch (Exception ex) {
+                throw new IllegalStateException(ex);
+            }
         }
+        return (JSObject) newPOJOImpl.call("fxBrwsrId", hash, id);
+    }
+
+    final Object undefined() {
+        if (undefined == null) {
+            undefined = engine.executeScript("undefined");
+        }
+        return undefined;
+    }
+
+    private int getArrayLength(Object val) throws JSException {
         int length = ((Number) arraySizeFn().call("array", val, null)).intValue();
-        if (length == -1) {
-            return val;
-        }
+        return length;
+    }
+
+    private Object[] toArray(int length, Object val) throws JSException {
         Object[] arr = new Object[length];
         arraySizeFn().call("array", val, arr);
+        checkArray(arr);
         return arr;
     }
+
+    private void checkArray(Object[] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = toJava(arr[i]);
+        }
+    }
+
     private final JSObject arraySizeFn() {
         if (arraySize == null) {
             try {
@@ -259,21 +311,64 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
     }
 
     @Override
-    public Object toJava(Object jsArray) {
-        if (jsArray instanceof Weak) {
-            jsArray = ((Weak)jsArray).get();
+    public Object toJava(Object toJS) {
+        if (toJS == undefined()) {
+            return null;
         }
-        return checkArray(jsArray);
+        if (!(toJS instanceof JSObject)) {
+            return toJS;
+        }
+        JSObject js = (JSObject) toJS;
+        int length = getArrayLength(toJS);
+        if (length != -1) {
+            Object[] arr = toArray(length, toJS);
+            return arr;
+        }
+        return values().realValue(js);
     }
 
     @Override
-    public Object toJavaScript(Object toReturn) {
-        if (toReturn instanceof Object[]) {
-            return convertArrays((Object[])toReturn);
-        } else {
-            return toReturn;
-        }
+    public Object toJavaScript(Object value) {
+        return toJavaScript(value, true);
     }
+
+    final Object toJavaScript(Object value, boolean keep) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String) {
+            return value;
+        }
+        if (value instanceof Number) {
+            return value;
+        }
+        if (value instanceof JSObject) {
+            return value;
+        }
+        if (value instanceof Boolean) {
+            return value;
+        }
+        if (value instanceof Character) {
+            return (int) (char) (Character) value;
+        }
+        if (value instanceof Enum) {
+            return value;
+        }
+        int len = isArray(value);
+        if (len >= 0) {
+            Object[] copy = new Object[len];
+            for (int i = 0; i < len; i++) {
+                copy[i] = toJavaScript(Array.get(value, i));
+            }
+            final JSObject wrapArr = (JSObject)wrapArrFn().call("array", copy); // NOI18N
+            return wrapArr;
+        }
+        if (value.getClass().getName().endsWith("$JsCallbacks$")) {
+            return value;
+        }
+        return values().wrap(value, keep);
+    }
+
 
     @Override public void execute(final Runnable r) {
         if (Platform.isFxApplicationThread()) {
@@ -328,40 +423,30 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
 
         final Object invokeImpl(Object thiz, boolean arrayChecks, Object... args) throws Exception {
             try {
+                final AbstractFXPresenter presenter = (AbstractFXPresenter) presenter();
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.log(Level.FINE, "calling {0} function #{1}", new Object[]{++call, id});
                     LOG.log(Level.FINER, "  thiz  : {0}", thiz);
                     LOG.log(Level.FINER, "  params: {0}", Arrays.asList(args));
                 }
                 List<Object> all = new ArrayList<Object>(args.length + 1);
-                all.add(thiz == null ? fn : thiz);
+                all.add(thiz == null ? presenter.undefined() : thiz);
                 for (int i = 0; i < args.length; i++) {
                     Object conv = args[i];
                     if (arrayChecks) {
-                        if (args[i] instanceof Object[]) {
-                            Object[] arr = (Object[]) args[i];
-                            conv = ((AbstractFXPresenter)presenter()).convertArrays(arr);
-                        }
-                        if (conv != null && keepAlive != null &&
-                            !keepAlive[i] && !isJSReady(conv) &&
-                            !conv.getClass().getSimpleName().equals("$JsCallbacks$") // NOI18N
-                        ) {
-                            conv = new Weak(conv);
-                        }
+                        boolean alive = keepAlive == null || keepAlive[i];
+                        conv = presenter.toJavaScript(conv, alive);
                     }
                     all.add(conv);
                 }
                 Object ret = fn.call("call", all.toArray()); // NOI18N
-                if (ret instanceof Weak) {
-                    ret = ((Weak)ret).get();
-                }
-                if (ret == fn) {
+                if (ret == presenter.undefined()) {
                     return null;
                 }
                 if (!arrayChecks) {
                     return ret;
                 }
-                return ((AbstractFXPresenter)presenter()).checkArray(ret);
+                return presenter.toJava(ret);
             } catch (Error t) {
                 t.printStackTrace();
                 throw t;
@@ -372,29 +457,174 @@ Fn.KeepAlive, Fn.ToJavaScript, Fn.FromJavaScript, Executor, Cloneable {
         }
     }
 
-    private static boolean isJSReady(Object obj) {
-        if (obj == null) {
-            return true;
+    protected int isArray(Object value) {
+        try {
+            return Array.getLength(value);
+        } catch (IllegalArgumentException ex) {
+            return -1;
         }
-        if (obj instanceof String) {
-            return true;
-        }
-        if (obj instanceof Number) {
-            return true;
-        }
-        if (obj instanceof JSObject) {
-            return true;
-        }
-        if (obj instanceof Character) {
-            return true;
-        }
-        return false;
     }
 
-    private static final class Weak extends WeakReference<Object> {
-        public Weak(Object referent) {
-            super(referent);
-            assert !(referent instanceof Weak);
+    private interface Ref extends Comparable<Ref> {
+        Object value();
+        int id();
+        JSObject jsObj();
+    }
+
+    private final class WeakRef extends WeakReference<Object> implements Ref {
+        private final int id;
+        private final JSObject js;
+
+        WeakRef(Object value, int id, JSObject js) {
+            super(value);
+            this.id = id;
+            this.js = js;
         }
-    } // end of Weak
+
+        @Override
+        public Object value() {
+            return get();
+        }
+
+        @Override
+        public int id() {
+            return id;
+        }
+
+        @Override
+        public JSObject jsObj() {
+            return js;
+        }
+
+        @Override
+        public int compareTo(Ref o) {
+            return this.id() - o.id();
+        }
+    }
+
+    private final class StrongRef implements Ref {
+        private final Object value;
+        private final int id;
+        private final JSObject js;
+
+        StrongRef(Object value, int id, JSObject js) {
+            this.value = value;
+            this.id = id;
+            this.js = js;
+        }
+
+        @Override
+        public Object value() {
+            return value;
+        }
+
+        @Override
+        public int id() {
+            return id;
+        }
+
+        @Override
+        public JSObject jsObj() {
+            return js;
+        }
+
+        @Override
+        public int compareTo(Ref o) {
+            return this.id() - o.id();
+        }
+    }
+
+    public final class JavaValues {
+        private final Map<Integer,NavigableSet<Ref>> values;
+        private int hash;
+        private int id;
+
+        JavaValues() {
+            this.values = new HashMap<Integer,NavigableSet<Ref>>();
+        }
+
+        synchronized final JSObject wrap(Object pojo, boolean keep) {
+            int hash = System.identityHashCode(pojo);
+            NavigableSet<Ref> refs = values.get(hash);
+            if (refs != null) {
+                for (Ref ref : refs) {
+                    if (ref.value() == pojo) {
+                        return ref.jsObj();
+                    }
+                }
+            } else {
+                refs = new TreeSet<Ref>();
+                values.put(hash, refs);
+            }
+            int id = findId(refs);
+            JSObject js = createPOJOWrapper(hash, id);
+            Ref newRef = keep ? new StrongRef(pojo, id, js) : new WeakRef(pojo, id, js);
+            refs.add(newRef);
+            return newRef.jsObj();
+        }
+
+        private int findId(NavigableSet<Ref> refs) {
+            if (refs.isEmpty()) {
+                return 0;
+            }
+            final Ref first = refs.first();
+            int previous = first.id();
+            if (previous > 0) {
+                return 0;
+            }
+            for (Ref ref : refs.tailSet(first, false)) {
+                int next = ref.id();
+                if (previous + 1 < next) {
+                    return previous + 1;
+                }
+                previous = next;
+            }
+            return previous + 1;
+        }
+
+        public void hashAndId(int hash, int id) {
+            assert this.hash == -1;
+            assert this.id == -1;
+            this.hash = hash;
+            this.id = id;
+        }
+
+        Object realValue(JSObject obj) {
+            Object java = obj.getMember("fxBrwsrId");
+            if (java instanceof JSObject) {
+                for (;;) {
+                    int resultHash;
+                    int resultId;
+                    synchronized (this) {
+                        this.hash = -1;
+                        this.id = -1;
+                        obj.call("fxBrwsrId", this);
+                        assert this.hash != -1;
+                        assert this.id != -1;
+                        resultHash = this.hash;
+                        resultId = this.id;
+                    }
+
+                    final NavigableSet<Ref> refs = values.get(resultHash);
+                    Iterator<Ref> it = refs.iterator();
+                    while (it.hasNext()) {
+                        Ref next = it.next();
+                        Object pojo = next.value();
+                        if (next.id() == resultId) {
+                            return pojo;
+                        }
+                        if (pojo == null) {
+                            it.remove();
+                        }
+                    }
+                    if (refs.isEmpty()) {
+                        values.remove(resultHash);
+                    }
+                }
+            }
+            return obj;
+        }
+    }
+
+
 }

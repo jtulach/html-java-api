@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -59,6 +59,20 @@ public final class Sum {
             }
         }
         return s;
+    }
+
+    public int sumNonNull(Object[] arr) {
+        int s = 0;
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] != null) {
+                s++;
+            }
+        }
+        return s;
+    }
+
+    public boolean checkNonNull(Object obj) {
+        return obj != null;
     }
     
     public String all(boolean z, byte b, short s, int i, long l, float f, double d, char ch, String str) {

@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -215,10 +215,11 @@ public final class Contexts {
          * @param <Tech> type of technology to register
          * @param type the real class of the technology type
          * @param impl an instance of the technology class
-         * @param position the lower position, the more important implementation 
+         * @param position the lower position (but higher than zero), the more important implementation
          *    which will be consulted sooner when seeking for a {@link Contexts#find(net.java.html.BrwsrCtx, java.lang.Class)}
          *    an implementation
          * @return this builder
+         * @throws IllegalStateException if the position isn't higher than <code>0</code>
          */
         public <Tech> Builder register(Class<Tech> type, Tech impl, int position) {
             if (impl == null) {

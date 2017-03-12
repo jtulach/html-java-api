@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -384,9 +384,9 @@ public final class ModelProcessor extends AbstractProcessor {
                     }
                     w.append("        case " + i + ": ");
                     if (pgs.setter != null) {
-                        w.append("data.").append(strip(pgs.setter)).append("(TYPE.extractValue(" + tn + ".class, value)); return;\n");
+                        w.append("data.").append(pgs.setter).append("(TYPE.extractValue(" + tn + ".class, value)); return;\n");
                     } else {
-                        w.append("TYPE.replaceValue(data.").append(strip(pgs.getter)).append("(), " + tn + ".class, value); return;\n");
+                        w.append("TYPE.replaceValue(data.").append(pgs.getter).append("(), " + tn + ".class, value); return;\n");
                     }
                 }
                 w.append("      }\n");
@@ -397,7 +397,7 @@ public final class ModelProcessor extends AbstractProcessor {
                 for (int i = 0; i < propsGetSet.size(); i++) {
                     final String get = propsGetSet.get(i).getter;
                     if (get != null) {
-                        w.append("        case " + i + ": return data." + strip(get) + "();\n");
+                        w.append("        case " + i + ": return data." + get + "();\n");
                     }
                 }
                 w.append("      }\n");
@@ -499,8 +499,9 @@ public final class ModelProcessor extends AbstractProcessor {
                         } else {
                             if (isPrimitive(type)) {
                                 if (type.equals("char")) {
-                                    w.append("        this.prop_").append(pn).append(".add((char)TYPE.numberValue(e).");
-                                    w.append("intValue());\n");
+                                    w.append("        this.prop_").append(pn).append(".add(TYPE.charValue(e));\n");
+                                } else if (type.equals("boolean")) {
+                                    w.append("        this.prop_").append(pn).append(".add(TYPE.boolValue(e));\n");
                                 } else {
                                     w.append("        this.prop_").append(pn).append(".add(TYPE.numberValue(e).");
                                     w.append(type).append("Value());\n");
@@ -579,18 +580,41 @@ public final class ModelProcessor extends AbstractProcessor {
                 w.write("    if (o == this) return true;\n");
                 w.write("    if (!(o instanceof " + className + ")) return false;\n");
                 w.write("    " + className + " p = (" + className + ")o;\n");
+                boolean thisToNull = false;
                 for (Prprt p : props) {
-                    w.write("    if (!TYPE.isSame(prop_" + p.name() + ", p.prop_" + p.name() + ")) return false;\n");
+                    boolean[] isModel = {false};
+                    boolean[] isEnum = {false};
+                    boolean isPrimitive[] = {false};
+                    checkType(p, isModel, isEnum, isPrimitive);
+                    if (isModel[0]) {
+                        w.write("    if (!TYPE.isSame(thisToNull(prop_" + p.name() + "), p.thisToNull(p.prop_" + p.name() + "))) return false;\n");
+                        thisToNull = true;
+                    } else {
+                        w.write("    if (!TYPE.isSame(prop_" + p.name() + ", p.prop_" + p.name() + ")) return false;\n");
+                    }
                 }
                 w.write("    return true;\n");
                 w.write("  }\n");
                 w.write("  public int hashCode() {\n");
                 w.write("    int h = " + className + ".class.getName().hashCode();\n");
                 for (Prprt p : props) {
-                    w.write("    h = TYPE.hashPlus(prop_" + p.name() + ", h);\n");
+                    boolean[] isModel = {false};
+                    boolean[] isEnum = {false};
+                    boolean isPrimitive[] = {false};
+                    checkType(p, isModel, isEnum, isPrimitive);
+                    if (isModel[0]) {
+                        w.write("    h = TYPE.hashPlus(thisToNull(prop_" + p.name() + "), h);\n");
+                    } else {
+                        w.write("    h = TYPE.hashPlus(prop_" + p.name() + ", h);\n");
+                    }
                 }
                 w.write("    return h;\n");
                 w.write("  }\n");
+                if (thisToNull) {
+                    w.write("  private Object thisToNull(Object value) {\n");
+                    w.write("    return value == this ? null : value;\n");
+                    w.write("  }\n");
+                }
                 w.write("}\n");
             } finally {
                 w.close();
@@ -718,7 +742,7 @@ public final class ModelProcessor extends AbstractProcessor {
 
             for (int i = 0; i < props.size(); i++) {
                 if (props.get(i).name.equals(p.name())) {
-                    error("Cannot have the name " + p.name() + " defined twice", where);
+                    error("Cannot have the property " + p.name() + " defined twice", where);
                     ok = false;
                 }
             }
@@ -742,7 +766,7 @@ public final class ModelProcessor extends AbstractProcessor {
         Map<String,Collection<String[]>> deps
     ) throws IOException {
         boolean ok = true;
-        for (Element e : arr) {
+        NEXT_ANNOTATION: for (Element e : arr) {
             if (e.getKind() != ElementKind.METHOD) {
                 continue;
             }
@@ -797,6 +821,15 @@ public final class ModelProcessor extends AbstractProcessor {
                         ok = false;
                         error(sn + " cannot return " + toCheck, e);
                     }
+                }
+            }
+
+            final String propertyName = e.getSimpleName().toString();
+            for (GetSet prop : props) {
+                if (propertyName.equals(prop.name)) {
+                    error("Cannot have the property " + propertyName + " defined twice", e);
+                    ok = false;
+                    continue NEXT_ANNOTATION;
                 }
             }
 
@@ -861,7 +894,7 @@ public final class ModelProcessor extends AbstractProcessor {
 
             if (write == null) {
                 props.add(new GetSet(
-                    e.getSimpleName().toString(),
+                    propertyName,
                     gs[0],
                     null,
                     tn,
@@ -875,7 +908,7 @@ public final class ModelProcessor extends AbstractProcessor {
                 w.write("  }\n");
 
                 props.add(new GetSet(
-                    e.getSimpleName().toString(),
+                    propertyName,
                     gs[0],
                     gs[4],
                     tn,
@@ -1388,9 +1421,20 @@ public final class ModelProcessor extends AbstractProcessor {
                 "        ex.printStackTrace();\n"
                 );
         } else {
-            error = !findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            int errorParamsLength = findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            error = errorParamsLength < 0;
             body.append("        ").append(clazz.getSimpleName()).append(".").append(onR.onError()).append("(");
-            body.append("model, ex);\n");
+            body.append("model, ex");
+            for (int i = 2; i < errorParamsLength; i++) {
+                String arg = args.get(i);
+                body.append(", ");
+                if (arg.startsWith("arr") || arg.startsWith("java.util.Array")) {
+                    body.append("null");
+                } else {
+                    body.append(arg);
+                }
+            }
+            body.append(");\n");
         }
         body.append(
             "        return;\n" +
@@ -1477,11 +1521,22 @@ public final class ModelProcessor extends AbstractProcessor {
                 "        value.printStackTrace();\n"
                 );
         } else {
-            if (!findOnError(e, ((TypeElement)clazz), onR.onError(), className)) {
+            int errorParamsLength = findOnError(e, ((TypeElement)clazz), onR.onError(), className);
+            if (errorParamsLength < 0) {
                 return true;
             }
             body.append("        ").append(inPckName(clazz, true)).append(".").append(onR.onError()).append("(");
-            body.append("model, value);\n");
+            body.append("model, value");
+            for (int i = 2; i < errorParamsLength; i++) {
+                String arg = args.get(i);
+                body.append(", ");
+                if (arg.startsWith("arr") || arg.startsWith("java.util.Array")) {
+                    body.append("null");
+                } else {
+                    body.append(arg);
+                }
+            }
+            body.append(");\n");
         }
         body.append(
             "        return;\n" +
@@ -1712,8 +1767,19 @@ public final class ModelProcessor extends AbstractProcessor {
             w.write(sep);
             w.append("    sb.append('\"').append(\"" + p.name() + "\")");
                 w.append(".append('\"').append(\":\");\n");
-            w.append("    sb.append(TYPE.toJSON(prop_");
-            w.append(p.name()).append("));\n");
+            String tn = typeName(p);
+            String[] gs = toGetSet(p.name(), tn, p.array());
+            boolean isModel[] = { false };
+            boolean isEnum[] = { false };
+            boolean isPrimitive[] = { false };
+            checkType(p, isModel, isEnum, isPrimitive);
+            if (isModel[0]) {
+                w.append("    sb.append(TYPE.toJSON(thisToNull(this.prop_");
+                w.append(p.name()).append(")));\n");
+            } else {
+                w.append("    sb.append(TYPE.toJSON(");
+                w.append(gs[0]).append("()));\n");
+            }
             sep =    "    sb.append(',');\n";
         }
         w.write("    sb.append('}');\n");
@@ -1738,7 +1804,7 @@ public final class ModelProcessor extends AbstractProcessor {
                     w.write("    ret.prop_" + p.name() + " = " + gs[0] + "();\n");
                     continue;
                 }
-                w.write("    ret.prop_" + p.name() + " =  " + gs[0] + "()  == null ? null : " + gs[0] + "().clone();\n");
+                w.write("    ret.prop_" + p.name() + " =  prop_" + p.name() + " == null ? null : prop_" + p.name() + " == this ? ret : " + gs[0] + "().clone();\n");
             } else {
                 w.write("    proto.cloneList(ret." + gs[0] + "(), ctx, prop_" + p.name() + ");\n");
             }
@@ -1913,15 +1979,6 @@ public final class ModelProcessor extends AbstractProcessor {
             error("Two sets of properties for ", e);
         }
         return ret;
-    }
-
-    private static String strip(String s) {
-        int indx = s.indexOf("__");
-        if (indx >= 0) {
-            return s.substring(0, indx);
-        } else {
-            return s;
-        }
     }
 
     private String findDataSpecified(ExecutableElement e, OnReceive onR) {
@@ -2120,7 +2177,7 @@ public final class ModelProcessor extends AbstractProcessor {
         return Completions.of('"' + method + '"', rb.getString("MSG_Completion_" + method));
     }
 
-    private boolean findOnError(ExecutableElement errElem, TypeElement te, String name, String className) {
+    private int findOnError(ExecutableElement errElem, TypeElement te, String name, String className) {
         String err = null;
         METHODS:
         for (Element e : te.getEnclosedElements()) {
@@ -2139,7 +2196,7 @@ public final class ModelProcessor extends AbstractProcessor {
             TypeMirror excType = processingEnv.getElementUtils().getTypeElement(Exception.class.getName()).asType();
             final List<? extends VariableElement> params = ee.getParameters();
             boolean error = false;
-            if (params.size() != 2) {
+            if (params.size() < 2 || params.size() > errElem.getParameters().size()) {
                 error = true;
             } else {
                 String firstType = params.get(0).asType().toString();
@@ -2153,19 +2210,28 @@ public final class ModelProcessor extends AbstractProcessor {
                 if (!processingEnv.getTypeUtils().isAssignable(excType, params.get(1).asType())) {
                     error = true;
                 }
+                for (int i = 2; i < params.size(); i++) {
+                    final VariableElement expectedParam = errElem.getParameters().get(i);
+                    if (!processingEnv.getTypeUtils().isSameType(params.get(i).asType(), errElem.getParameters().get(i).asType())) {
+                        error = true;
+                        err = "Parameter #" + (i + 1) + " should be of type " + expectedParam;
+                    }
+                }
             }
             if (error) {
                 errElem = (ExecutableElement) e;
-                err = "Error method first argument needs to be " + className + " and second Exception";
+                if (err == null) {
+                    err = "Error method first argument needs to be " + className + " and second Exception";
+                }
                 continue;
             }
-            return true;
+            return params.size();
         }
         if (err == null) {
             err = "Cannot find " + name + "(" + className + ", Exception) method in this class";
         }
         error(err, errElem);
-        return false;
+        return -1;
     }
 
     private ExecutableElement findWrite(ExecutableElement computedPropElem, TypeElement te, String name, String className) {

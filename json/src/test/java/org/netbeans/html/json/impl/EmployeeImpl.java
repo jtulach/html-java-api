@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -73,6 +73,24 @@ public class EmployeeImpl {
     @OnReceive(url = "some/other/url")
     static void changePersonalities(Employee e, List<Person> data, int i, double d, String s, Person o) {
         e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
+    }
+
+    @OnReceive(url = "some/other/url", onError = "errorPersonalitiesWithEx")
+    static void changePersonalitiesWithEx(Employee e, List<Person> data, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
+    }
+
+    static void errorPersonalitiesWithEx(Employee e, Exception ex) {
+        e.setCall(new Call(-1, -1, null, null));
+    }
+
+    @OnReceive(url = "some/other/url", onError = "errorPersonalitiesWithParam")
+    static void changePersonalitiesWithParam(Employee e, List<Person> data, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o, data.toArray(new Person[0])));
+    }
+
+    static void errorPersonalitiesWithParam(Employee e, Exception ex, int i, double d, String s, Person o) {
+        e.setCall(new Call(i, d, s, o));
     }
 
     @OnReceive(url = "{url}", method = "PUT", data = Person.class)

@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -68,7 +68,11 @@ final class WatchDir implements Runnable {
     private final WebEngine engine;
     
     WatchDir(WebEngine eng) throws URISyntaxException, IOException {
-        dir = Paths.get(new URI(eng.getLocation())).getParent();
+        URI loc = new URI(eng.getLocation());
+        if (loc.getFragment() != null) {
+            loc = new URI(loc.getScheme(), loc.getHost(), loc.getPath(), null);
+        }
+        dir = Paths.get(loc).getParent();
         engine = eng;
         ws = dir.getFileSystem().newWatchService();
         key = dir.register(ws, 

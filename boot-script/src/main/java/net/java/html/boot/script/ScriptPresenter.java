@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -44,6 +44,7 @@ package net.java.html.boot.script;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.ObjectOutput;
 import java.io.Reader;
 import java.lang.ref.WeakReference;
 import java.net.URL;
@@ -74,8 +75,20 @@ import org.netbeans.html.boot.spi.Fn.Presenter;
 final class ScriptPresenter implements Fn.KeepAlive,
 Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
     private static final Logger LOG = Logger.getLogger(ScriptPresenter.class.getName());
+    private static final boolean JDK7;
+    static {
+        boolean jdk7;
+        try {
+            Class.forName("java.lang.FunctionalInterface");
+            jdk7 = false;
+        } catch (ClassNotFoundException ex) {
+            jdk7 = true;
+        }
+        JDK7 = jdk7;
+    }
     private final ScriptEngine eng;
     private final Executor exc;
+    private final Object undefined;
 
     public ScriptPresenter(Executor exc) {
         this.exc = exc;
@@ -84,6 +97,13 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
             eng.eval("function alert(msg) { Packages.java.lang.System.out.println(msg); };");
             eng.eval("function confirm(msg) { Packages.java.lang.System.out.println(msg); return true; };");
             eng.eval("function prompt(msg, txt) { Packages.java.lang.System.out.println(msg + ':' + txt); return txt; };");
+            Object undef;
+            if (JDK7) {
+                undef = new JDK7Callback().undefined(eng);
+            } else {
+                undef = ((Object[])eng.eval("Java.to([undefined])"))[0];
+            }
+            this.undefined = undef;
         } catch (ScriptException ex) {
             throw new IllegalStateException(ex);
         }
@@ -175,6 +195,7 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
         fn.invokeImpl(null, false, val, arr);
         return arr;
     }
+
     private FnImpl arraySize;
     private FnImpl arraySizeFn() {
         if (arraySize == null) {
@@ -185,7 +206,9 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
                     + "  else return -1;\n"
                     + "} else {\n"
                     + "  var l = arr.length;\n"
-                    + "  for (var i = 0; i < l; i++) to[i] = arr[i];\n"
+                    + "  for (var i = 0; i < l; i++) {\n"
+                    + "    to[i] = arr[i] === undefined ? null : arr[i];\n"
+                    + "  }\n"
                     + "  return l;\n"
                     + "}", new String[] { "arr", "to" }, null
                 );
@@ -197,12 +220,15 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
     }
 
     @Override
-    public Object toJava(Object jsArray) {
-        if (jsArray instanceof Weak) {
-            jsArray = ((Weak)jsArray).get();
+    public Object toJava(Object toJS) {
+        if (toJS instanceof Weak) {
+            toJS = ((Weak)toJS).get();
+        }
+        if (toJS == undefined) {
+            return null;
         }
         try {
-            return checkArray(jsArray);
+            return checkArray(toJS);
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
         }
@@ -217,6 +243,11 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
                 throw new IllegalStateException(ex);
             }
         } else {
+            if (JDK7) {
+                if (toReturn instanceof Boolean) {
+                    return ((Boolean)toReturn) ? true : null;
+                }
+            }
             return toReturn;
         }
     }
@@ -324,4 +355,89 @@ Presenter, Fn.FromJavaScript, Fn.ToJavaScript, Executor {
             super(referent);
         }
     }
+
+    private static final class JDK7Callback implements ObjectOutput {
+        private Object undefined;
+
+        @Override
+        public void writeObject(Object obj) throws IOException {
+            undefined = obj;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+        }
+
+        @Override
+        public void flush() throws IOException {
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+
+        @Override
+        public void writeBoolean(boolean v) throws IOException {
+        }
+
+        @Override
+        public void writeByte(int v) throws IOException {
+        }
+
+        @Override
+        public void writeShort(int v) throws IOException {
+        }
+
+        @Override
+        public void writeChar(int v) throws IOException {
+        }
+
+        @Override
+        public void writeInt(int v) throws IOException {
+        }
+
+        @Override
+        public void writeLong(long v) throws IOException {
+        }
+
+        @Override
+        public void writeFloat(float v) throws IOException {
+        }
+
+        @Override
+        public void writeDouble(double v) throws IOException {
+        }
+
+        @Override
+        public void writeBytes(String s) throws IOException {
+        }
+
+        @Override
+        public void writeChars(String s) throws IOException {
+        }
+
+        @Override
+        public void writeUTF(String s) throws IOException {
+        }
+
+        public Object undefined(ScriptEngine eng) {
+            try {
+                eng.eval("function isJDK7Undefined(js) { js.writeObject(undefined); }");
+                Invocable inv = (Invocable) eng;
+                inv.invokeFunction("isJDK7Undefined", this);
+            } catch (NoSuchMethodException | ScriptException ex) {
+                throw new IllegalStateException(ex);
+            }
+            return undefined;
+        }
+    }
+
 }

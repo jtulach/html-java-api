@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -46,6 +46,7 @@ import net.java.html.BrwsrCtx;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ListIterator;
@@ -273,6 +274,67 @@ public class MapModelTest {
         assertEquals(one.changes, 2, "Snd change");
     }
 
+    @Test public void subListChange() {
+        People p = Models.bind(new People(), c);
+        p.getNicknames().add("One");
+        p.getNicknames().add("Two");
+        p.getNicknames().add("Three");
+
+        Map m = (Map)Models.toRaw(p);
+        Object o = m.get("nicknames");
+        assertNotNull(o, "List registered in the model");
+        assertEquals(o.getClass(), One.class);
+        One one = (One)o;
+
+
+        assertEquals(one.changes, 0, "No change");
+
+        p.getNicknames().subList(1, 2).clear();
+
+        assertEquals(p.getNicknames().size(), 2, "Two elements");
+
+        ListIterator<String> it = p.getNicknames().listIterator(0);
+        assertEquals(it.next(), "One");
+        assertEquals(it.next(), "Three");
+        assertFalse(it.hasNext());
+
+
+        assertEquals(one.changes, 1, "One change");
+    }
+
+    @Test public void sort() {
+        People p = Models.bind(new People(), c);
+        p.getNicknames().add("One");
+        p.getNicknames().add("Two");
+        p.getNicknames().add("Three");
+        p.getNicknames().add("Four");
+
+        Map m = (Map)Models.toRaw(p);
+        Object o = m.get("nicknames");
+        assertNotNull(o, "List registered in the model");
+        assertEquals(o.getClass(), One.class);
+        One one = (One)o;
+
+
+        assertEquals(one.changes, 0, "No change");
+
+        Collections.sort(p.getNicknames());
+
+        Iterator<String> it = p.getNicknames().iterator();
+        assertEquals(it.next(), "Four");
+        assertEquals(it.next(), "One");
+        assertEquals(it.next(), "Three");
+        assertEquals(it.next(), "Two");
+        assertFalse(it.hasNext());
+
+
+        assertNotEquals(one.changes, 0, "At least one change");
+
+        if (isJDK8()) {
+            assertEquals(one.changes, 1, "Exactly one echange");
+        }
+    }
+
     @Test public void functionWithParameters() {
         People p = Models.bind(new People(), c);
         p.getNicknames().add("One");
@@ -334,6 +396,15 @@ public class MapModelTest {
         assertEquals(cnt[1], 1, "Callback called");
         assertEquals(cnt[0], 3, "Internal state kept");
         assertEquals(incThreeTimes.cnt, 3, "Property change delivered three times");
+    }
+
+    private static boolean isJDK8() {
+        try {
+            Class.forName("java.lang.FunctionalInterface");
+            return true;
+        } catch (ClassNotFoundException ex) {
+            return false;
+        }
     }
     
     static final class One {

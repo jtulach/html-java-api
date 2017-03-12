@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -234,7 +234,7 @@ final class FXToolbar extends ToolBar {
     /**
      * Button to resize the browser window.
      * Taken from NetBeans. Kept GPLwithCPEx license.
-     * Portions Copyrighted 2012 Sun Microsystems, Inc.
+     * Portions Copyright 2012 Oracle.
      *
      * @author S. Aubrecht
      */

@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -51,7 +51,8 @@ import static org.testng.Assert.assertSame;
 import org.testng.annotations.Test;
 
 @Model(className = "Infinity", properties = {
-    @Property(name = "next", type = Infinity.class)
+    @Property(name = "next", type = Infinity.class),
+    @Property(name = "address", type = Address.class)
 })
 public class InfinityTest {
     @Test
@@ -89,4 +90,62 @@ public class InfinityTest {
         assertEquals(infinity.getNext(), n, "Remains n");
         assertEquals(infinity.getNext(), n, "Again n");
     }
+
+    @Test
+    public void nullRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        infinity.setNext(null);
+        Infinity clone = infinity.clone();
+        assertNull(clone.getNext(), "Remains null");
+        assertNull(clone.getNext(), "Again");
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
+    }
+
+    @Test
+    public void ownValueRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        Infinity n = new Infinity();
+        infinity.setNext(n);
+        Infinity clone = infinity.clone();
+        assertEquals(clone.getNext(), n, "Remains n");
+        assertEquals(clone.getNext(), n, "Again n");
+    }
+
+    @Test
+    public void hashCodeRemainsAfterClone() {
+        Infinity infinity = new Infinity();
+        Infinity n = new Infinity();
+        infinity.setNext(n);
+        Infinity clone = infinity.clone();
+        assertEquals(clone.getNext(), n, "Remains n");
+        assertEquals(clone.getNext(), n, "Again n");
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
+    }
+
+    @Test
+    public void simpleToStringWithNull() {
+        Infinity infinity = new Infinity();
+        assertNotNull(infinity.getAddress(), "Initialized will be stored as object");
+        assertEquals("{\"next\":null,\"address\":{\"place\":null}}", infinity.toString());
+        infinity.hashCode();
+
+        Infinity second = new Infinity();
+        assertEquals("{\"next\":null,\"address\":null}", second.toString(), "Uninitialized is turned into null");
+
+        second.hashCode();
+    }
+
+    @Test
+    public void toStringWithNullAndClone() {
+        Infinity infinity = new Infinity();
+        infinity.setNext(null);
+        Infinity clone = infinity.clone();
+        assertNull(infinity.getNext(), "Remains null");
+        assertNotNull(infinity.getAddress(), "Address is initialized");
+        assertNull(clone.getNext(), "Clone Remains null");
+        assertNotNull(clone.getAddress(), "Clone Address is initialized");
+        assertEquals(infinity.toString(), clone.toString());
+        assertEquals(clone.hashCode(), infinity.hashCode(), "Same hashcode");
+    }
+
 }

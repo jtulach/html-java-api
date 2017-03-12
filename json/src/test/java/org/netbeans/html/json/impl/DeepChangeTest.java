@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -520,6 +520,17 @@ public class DeepChangeTest {
 
         void set(Object v) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
             pb.setValue(v);
+        }
+
+        void assertNoChange(String msg) {
+            assertEquals(changes, 0, msg);
+        }
+
+        void assertChange(String msg) {
+            if (changes == 0) {
+                fail(msg);
+            }
+            changes = 0;
         }
     }
 

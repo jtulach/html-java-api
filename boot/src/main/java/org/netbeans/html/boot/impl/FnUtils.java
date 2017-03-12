@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -44,7 +44,6 @@ package org.netbeans.html.boot.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -441,13 +440,20 @@ public final class FnUtils {
                             super.visitTypeInsn(Opcodes.CHECKCAST, sv.returnType.getInternalName());
                             super.visitInsn(Opcodes.ARETURN);
                             break;
-                        case Type.BOOLEAN:
+                        case Type.BOOLEAN: {
+                            Label handleNullValue = new Label();
+                            super.visitInsn(Opcodes.DUP);
+                            super.visitJumpInsn(Opcodes.IFNULL, handleNullValue);
                             super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Boolean");
                             super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
                                     "java/lang/Boolean", "booleanValue", "()Z"
                             );
                             super.visitInsn(Opcodes.IRETURN);
+                            super.visitLabel(handleNullValue);
+                            super.visitInsn(Opcodes.ICONST_0);
+                            super.visitInsn(Opcodes.IRETURN);
                             break;
+                        }
                         default:
                             super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Number");
                             super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,

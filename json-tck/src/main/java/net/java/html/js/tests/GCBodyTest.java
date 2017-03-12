@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -66,6 +66,25 @@ public class GCBodyTest {
         Reference<?> ref = new WeakReference<Object>(s);
         s = null;
         assertGC(ref, "Can disappear!");
+    }
+
+    @KOTest public void callbackInterfaceShallNotDisappear() throws InterruptedException {
+        Sum sum = new Sum();
+        Object jsSum = Bodies.sumDelayed(sum);
+        Reference<?> ref = new WeakReference<Object>(sum);
+        sum = null;
+        IllegalStateException gcError = null;
+        try {
+            assertNotGC(ref, false, "object s should still stay");
+        } catch (IllegalStateException ex) {
+            gcError = ex;
+        }
+
+        int res = Bodies.sumNow(jsSum, 22, 20);
+        assertEquals(res, 42, "Expecting 42");
+        if (gcError != null) {
+            throw gcError;
+        }
     }
     
     private Object assignInst() {

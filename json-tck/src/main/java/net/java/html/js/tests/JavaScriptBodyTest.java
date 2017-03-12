@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -154,6 +154,15 @@ public class JavaScriptBodyTest {
         assertEquals("number", doubleType, "Expecting number type: " + doubleType);
     }
 
+    enum Two {
+        ONE, TWO;
+    }
+
+    @KOTest public void toStringOfAnEnum() {
+        String enumStr = Bodies.toString(Two.ONE);
+        assertEquals(Two.ONE.toString(), enumStr, "Enum toString() used: " + enumStr);
+    }
+
     @KOTest public void computeInARunnable() {
         final int[] sum = new int[2];
         class First implements Runnable {
@@ -205,10 +214,16 @@ public class JavaScriptBodyTest {
         assertEquals(r, p, "The null is the same");
     }
     
-    @KOTest public void callbackWithResult() {
-        Callable<Boolean> c = new C();
-        Object b = Bodies.callback(c);
-        assertEquals(b, Boolean.TRUE, "Should return true");
+    @KOTest public void callbackWithTrueResult() {
+        Callable<Boolean> c = new C(true);
+        String b = Bodies.yesNo(c);
+        assertEquals(b, "yes", "Should return true");
+    }
+
+    @KOTest public void callbackWithFalseResult() {
+        Callable<Boolean> c = new C(false);
+        String b = Bodies.yesNo(c);
+        assertEquals(b, "no", "Should return false");
     }
     
     @KOTest public void callbackWithParameters() throws InterruptedException {
@@ -352,7 +367,42 @@ public class JavaScriptBodyTest {
         String all = Bodies.primitiveTypes(new Sum());
         assertEquals("Ahojfalse12356.07.0 TheEND", all, "Valid return type: " + all);
     }
+
+    @KOTest public void returnUnknown() {
+        Object o = Bodies.unknown();
+        assertNull(o, "Unknown is converted to null");
+    }
+
+    @KOTest public void returnUndefinedString() {
+        Object o = Bodies.id("undefined");
+        assertNotNull(o, "String remains string");
+    }
+
+    @KOTest public void returnUnknownArray() {
+        Object[] arr = Bodies.unknownArray();
+        assertEquals(arr.length, 2, "Two elements");
+        assertNull(arr[0], "1st element is null");
+        assertNull(arr[1], "2nd element is null");
+    }
+
+    @KOTest public void callbackKnown() {
+        Sum s = new Sum();
+        boolean nonNull = Bodies.nonNull(s, "x");
+        assertTrue(nonNull, "x property exists");
+    }
     
+    @KOTest public void callbackUnknown() {
+        Sum s = new Sum();
+        boolean nonNull = Bodies.nonNull(s, "y");
+        assertFalse(nonNull, "y property doesn't exist");
+    }
+
+    @KOTest public void callbackUnknownArray() {
+        Sum s = new Sum();
+        int nullAndUnknown = Bodies.sumNonNull(s);
+        assertEquals(nullAndUnknown, 1, "Only one slot");
+    }
+
     @KOTest public void problematicString() {
         String orig = Bodies.problematicString();
         String js = Bodies.problematicCallback();
@@ -370,6 +420,13 @@ public class JavaScriptBodyTest {
             }
         }
         fail("The JS string is different: " + js);
+    }
+
+    @KOTest
+    public void doubleInAnArray() throws Exception {
+        Double val = 2.2;
+        boolean res = Bodies.isInArray(new Object[] { val }, val);
+        assertTrue(res, "Should be in the array");
     }
     
     Later l;
@@ -393,6 +450,26 @@ public class JavaScriptBodyTest {
         }
         assertEquals(l.call, 42, "Method was called: " + l.call);
     }
+
+    @KOTest
+    public void globalStringAvailable() throws Exception {
+        assertEquals("HTML/Java", GlobalString.init());
+        assertEquals("HTML/Java", Bodies.readGlobalString());
+    }
+
+    @KOTest
+    public void globalValueInCallbackAvailable() throws Exception {
+        final String[] value = { null, null };
+        Bodies.callback(new Runnable() {
+            @Override
+            public void run() {
+                value[0] = Global2String.init();
+                value[1] = Bodies.readGlobal2String();
+            }
+        });
+        assertEquals(value[0], "NetBeans", "As a returned value from defining method");
+        assertEquals(value[1], "NetBeans", "As read later by different method");
+    }
     
     private static class R implements Runnable {
         int cnt;
@@ -410,9 +487,15 @@ public class JavaScriptBodyTest {
     }
     
     private static class C implements Callable<Boolean> {
+        private final boolean ret;
+
+        public C(boolean ret) {
+            this.ret = ret;
+        }
+        
         @Override
         public Boolean call() throws Exception {
-            return Boolean.TRUE;
+            return ret;
         }
     }
     static void assertEquals(Object a, Object b, String msg) {

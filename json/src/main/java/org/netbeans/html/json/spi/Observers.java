@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -73,7 +73,9 @@ final class Observers {
         synchronized (GLOBAL) {
             for (Watcher w : GLOBAL) {
                 if (w.proto == p) {
-                    throw new IllegalStateException("Re-entrant attempt to access " + p);
+                    if (w.owner == Thread.currentThread()) {
+                        throw new IllegalStateException("Re-entrant attempt to access " + p);
+                    }
                 }
             }
         }        
@@ -91,13 +93,21 @@ final class Observers {
     
     static void finishComputing(Proto p) {
         synchronized (GLOBAL) {
-            Watcher w = GLOBAL.pop();
-            if (w.proto != p) {
-                throw new IllegalStateException("Inconsistency: " + w.proto + " != " + p);
+            boolean found = false;
+            Iterator<Watcher> it = GLOBAL.iterator();
+            while (it.hasNext()) {
+                Watcher w = it.next();
+                if (w.proto == p && w.owner == Thread.currentThread()) {
+                    if (w.prop != null) {
+                        Observers mine = p.observers(true);
+                        mine.add(w);
+                    }
+                    found = true;
+                    it.remove();
+                }
             }
-            if (w.prop != null) {
-                Observers mine = p.observers(true);
-                mine.add(w);
+            if (!found) {
+                throw new IllegalStateException("Cannot find " + p + " in " + GLOBAL);
             }
         }
     }
@@ -205,10 +215,12 @@ final class Observers {
     }
     
     private static final class Watcher {
+        final Thread owner;
         final Proto proto;
         final String prop;
 
         Watcher(Proto proto, String prop) {
+            this.owner = Thread.currentThread();
             this.proto = proto;
             this.prop = prop;
         }

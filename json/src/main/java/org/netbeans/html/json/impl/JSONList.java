@@ -27,7 +27,7 @@
  * Contributor(s):
  *
  * The Original Software is NetBeans. The Initial Developer of the Original
- * Software is Oracle. Portions Copyright 2013-2014 Oracle. All Rights Reserved.
+ * Software is Oracle. Portions Copyright 2013-2016 Oracle. All Rights Reserved.
  *
  * If you wish your version of this file to be governed by only the CDDL
  * or only the GPL Version 2, indicate your decision by adding
@@ -44,7 +44,9 @@ package org.netbeans.html.json.impl;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import org.netbeans.html.json.spi.Proto;
 
@@ -140,6 +142,15 @@ public final class JSONList<T> extends ArrayList<T> {
         return ret;
     }
 
+    public void sort(Comparator<? super T> c) {
+        Object[] arr = this.toArray();
+        Arrays.sort(arr, (Comparator<Object>) c);
+        for (int i = 0; i < arr.length; i++) {
+            super.set(i, (T) arr[i]);
+        }
+        notifyChange();
+    }
+
     @Override
     public boolean retainAll(Collection<?> c) {
         prepareChange();
@@ -169,6 +180,12 @@ public final class JSONList<T> extends ArrayList<T> {
         T ret = super.remove(index);
         notifyChange();
         return ret;
+    }
+
+    @Override
+    protected void removeRange(int fromIndex, int toIndex) {
+        super.removeRange(fromIndex, toIndex);
+        notifyChange();
     }
 
     @Override
