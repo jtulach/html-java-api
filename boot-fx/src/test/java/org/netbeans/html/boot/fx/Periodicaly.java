@@ -40,55 +40,64 @@
  * Version 2 license, then the option applies only if the new code is
  * made subject to such option by the copyright holder.
  */
-package net.java.html.boot.truffle;
+package org.netbeans.html.boot.fx;
 
-import com.oracle.truffle.api.interop.ForeignAccess;
-import com.oracle.truffle.api.interop.MessageResolution;
-import com.oracle.truffle.api.interop.Resolve;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.nodes.Node;
+import java.util.Timer;
+import java.util.TimerTask;
+import net.java.html.BrwsrCtx;
+import net.java.html.js.JavaScriptBody;
 
-@MessageResolution(receiverType = JavaObject.class, language = TrufflePresenter.JavaLang.class)
-final class JavaObject extends JavaValue implements TruffleObject {
-    final Object obj;
+// BEGIN: org.netbeans.html.boot.fx.Periodicaly
+public final class Periodicaly extends TimerTask {
+    private final BrwsrCtx ctx;
+    private int counter;
 
-    JavaObject(Object obj) {
-        this.obj = obj;
-    }
-
-
-    @Override
-    public ForeignAccess getForeignAccess() {
-        return JavaObjectForeign.ACCESS;
-    }
-
-    public static boolean isInstance(TruffleObject obj) {
-        return obj instanceof JavaObject;
+    private Periodicaly(BrwsrCtx ctx) {
+        // remember the browser context and use it later
+        this.ctx = ctx;
+        this.counter = 0;
     }
 
     @Override
-    public Object get() {
-        return obj;
-    }
-
-    @Resolve(message = "HAS_SIZE")
-    static abstract class NoSizeNode extends Node {
-
-        protected boolean access(JavaObject obj) {
-            return false;
-        }
-    }
-
-    @Resolve(message = "INVOKE")
-    static abstract class Methods extends Node {
-
-        protected Object access(JavaObject javaObject, String methodName, Object[] args) {
-            if (methodName.equals("toString")) {
-                return javaObject.obj.toString();
+    public void run() {
+        // arrives on wrong thread, needs to be re-scheduled
+        ctx.execute(new Runnable() {
+            @Override
+            public void run() {
+                codeThatNeedsToBeRunInABrowserEnvironment();
             }
-            throw UnknownIdentifierException.raise(methodName);
-        }
+        });
     }
 
+    // called when your page is ready
+    public static void onPageLoad(String... args) throws Exception {
+        // the context at the time of page initialization
+        BrwsrCtx initialCtx = BrwsrCtx.findDefault(Periodicaly.class);
+        // the task that is associated with context
+        Periodicaly task = new Periodicaly(initialCtx);
+        // creates a new timer
+        Timer t = new Timer("Move the box");
+        // run the task every 100ms
+        t.scheduleAtFixedRate(task, 0, 100);
+    }
+
+    @JavaScriptBody(args = { "a", "b" }, body = "return a + b")
+    private static native int plus(int a, int b);
+
+    void codeThatNeedsToBeRunInABrowserEnvironment() {
+        // invokes JavaScript function in the browser environment
+        counter = plus(counter, 1);
+// FINISH: org.netbeans.html.boot.fx.Periodicaly
+
+        synchronized (Periodicaly.class) {
+            globalCounter = counter;
+            Periodicaly.class.notifyAll();
+        }
+    }
+    static int globalCounter;
+    static synchronized void assertTen() throws InterruptedException {
+        while (globalCounter < 10) {
+            Periodicaly.class.wait();
+        }
+    }
 }

@@ -67,6 +67,25 @@ public class GCBodyTest {
         s = null;
         assertGC(ref, "Can disappear!");
     }
+
+    @KOTest public void callbackInterfaceShallNotDisappear() throws InterruptedException {
+        Sum sum = new Sum();
+        Object jsSum = Bodies.sumDelayed(sum);
+        Reference<?> ref = new WeakReference<Object>(sum);
+        sum = null;
+        IllegalStateException gcError = null;
+        try {
+            assertNotGC(ref, false, "object s should still stay");
+        } catch (IllegalStateException ex) {
+            gcError = ex;
+        }
+
+        int res = Bodies.sumNow(jsSum, 22, 20);
+        assertEquals(res, 42, "Expecting 42");
+        if (gcError != null) {
+            throw gcError;
+        }
+    }
     
     private Object assignInst() {
         Object obj = Bodies.instance(0);

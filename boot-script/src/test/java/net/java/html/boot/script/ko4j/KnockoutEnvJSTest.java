@@ -48,10 +48,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -108,10 +110,15 @@ public final class KnockoutEnvJSTest extends KnockoutTCK {
         baseUri = DynamicHTTP.initServer();
 
         final Fn.Presenter p = Scripts.createPresenter(KOCase.JS);
-        URL envNashorn = new URL("https://bugs.openjdk.java.net/secure/attachment/11894/env.nashorn.1.2-debug.js");
-        InputStream is = envNashorn.openStream();
-        p.loadScript(new InputStreamReader(is));
-        is.close();
+        try {
+            URL envNashorn = new URL("https://bugs.openjdk.java.net/secure/attachment/11894/env.nashorn.1.2-debug.js");
+            InputStream is = envNashorn.openStream();
+            p.loadScript(new InputStreamReader(is));
+            is.close();
+        } catch (UnknownHostException | ConnectException ex) {
+            ex.printStackTrace();
+            return new Object[0];
+        }
 
         final BrowserBuilder bb = BrowserBuilder.newBrowser(p).
             loadClass(KnockoutEnvJSTest.class).
@@ -149,6 +156,7 @@ public final class KnockoutEnvJSTest extends KnockoutTCK {
         final String ver = System.getProperty("java.runtime.version"); // NOI18N
         if (
             ver.startsWith("1.8.0_25") ||
+            ver.startsWith("1.8.0_31") ||
             ver.startsWith("1.8.0_40")
         ) {
             return "Broken due to JDK-8047764";

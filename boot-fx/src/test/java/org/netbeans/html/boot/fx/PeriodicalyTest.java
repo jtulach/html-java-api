@@ -40,55 +40,25 @@
  * Version 2 license, then the option applies only if the new code is
  * made subject to such option by the copyright holder.
  */
-package net.java.html.boot.truffle;
+package org.netbeans.html.boot.fx;
 
-import com.oracle.truffle.api.interop.ForeignAccess;
-import com.oracle.truffle.api.interop.MessageResolution;
-import com.oracle.truffle.api.interop.Resolve;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.nodes.Node;
+import java.util.concurrent.Executors;
+import net.java.html.boot.BrowserBuilder;
+import org.testng.annotations.Test;
 
-@MessageResolution(receiverType = JavaObject.class, language = TrufflePresenter.JavaLang.class)
-final class JavaObject extends JavaValue implements TruffleObject {
-    final Object obj;
-
-    JavaObject(Object obj) {
-        this.obj = obj;
-    }
-
-
-    @Override
-    public ForeignAccess getForeignAccess() {
-        return JavaObjectForeign.ACCESS;
-    }
-
-    public static boolean isInstance(TruffleObject obj) {
-        return obj instanceof JavaObject;
-    }
-
-    @Override
-    public Object get() {
-        return obj;
-    }
-
-    @Resolve(message = "HAS_SIZE")
-    static abstract class NoSizeNode extends Node {
-
-        protected boolean access(JavaObject obj) {
-            return false;
-        }
-    }
-
-    @Resolve(message = "INVOKE")
-    static abstract class Methods extends Node {
-
-        protected Object access(JavaObject javaObject, String methodName, Object[] args) {
-            if (methodName.equals("toString")) {
-                return javaObject.obj.toString();
+public final class PeriodicalyTest {
+    @Test
+    public void runPeriodically() throws Exception {
+        final BrowserBuilder bb = BrowserBuilder.newBrowser(new FXPresenter())
+                .loadPage("empty.html")
+                .loadClass(Periodicaly.class)
+                .invoke("onPageLoad");
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                bb.showAndWait();
             }
-            throw UnknownIdentifierException.raise(methodName);
-        }
+        });
+        Periodicaly.assertTen();
     }
-
 }
