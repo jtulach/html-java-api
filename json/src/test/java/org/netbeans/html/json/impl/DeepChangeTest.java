@@ -324,6 +324,43 @@ public class DeepChangeTest {
         refStrong = null;
         assertGC(ref, "Original MyY can now disappear");
     }
+
+    @Test
+    public void disappearModel() throws Exception {
+        MyOverall p = Models.bind(
+            new MyOverall(new MyX(new MyY("Ahoj", 0), new MyY("Hi", 333), new MyY("Hello", 999))
+        ), c);
+
+        MyY refStrong = disappearModelOperations(p);
+
+        Reference<MyOverall> ref = new WeakReference<MyOverall>(p);
+        p = null;
+        assertGC(ref, "Original MyY can now disappear");
+        assertNotNull(refStrong, "Submodel still used");
+    }
+
+    private MyY disappearModelOperations(MyOverall p) throws InvocationTargetException, IllegalAccessException, IllegalArgumentException {
+        Models.applyBindings(p);
+        Map m = (Map)Models.toRaw(p);
+        Object v = m.get("valueAccross");
+        assertNotNull(v, "Value should be in the map");
+        assertEquals(v.getClass(), One.class, "It is instance of One");
+        One o = (One)v;
+        assertEquals(o.changes, 0, "No changes so far");
+        assertTrue(o.pb.isReadOnly(), "Derived property");
+        assertEquals(o.get(), "Hi");
+        final List<MyY> all = p.getX().getAll();
+        MyY refStrong = all.get(0);
+        refStrong.setValue("Nazdar");
+        assertEquals(o.get(), "Nazdar");
+        assertEquals(o.changes, 1, "One change so far");
+        all.clear();
+        assertEquals(o.changes, 2, "Second change");
+        assertNull(o.get(), "MyY array is empty now");
+        refStrong.setValue("Ignore");
+        assertEquals(o.changes, 2, "Still two changes");
+        return refStrong;
+    }
     
     @Test public void secondChangeInArrayIgnored() throws Exception {
         MyX p = Models.bind(
