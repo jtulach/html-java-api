@@ -335,7 +335,7 @@ public class DeepChangeTest {
 
         Reference<MyOverall> ref = new WeakReference<MyOverall>(p);
         p = null;
-        assertGC(ref, "Original MyY can now disappear");
+        assertGC(ref, "MyOverall can now disappear");
         assertNotNull(refStrong, "Submodel still used");
     }
 

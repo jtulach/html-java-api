@@ -207,7 +207,7 @@ final class Observers {
                 it.remove();
                 continue;
             }
-            if (rw == w && r.prop.equals(r.prop)) {
+            if (rw == w && ref.prop.equals(r.prop)) {
                 return;
             }
         }
