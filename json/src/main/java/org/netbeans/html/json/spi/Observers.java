@@ -42,10 +42,8 @@
  */
 package org.netbeans.html.json.spi;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import org.netbeans.html.json.impl.SimpleList;
 
 /**
@@ -242,7 +240,8 @@ final class Observers {
     }
 
     static final class Usages {
-        private final Map<String,Watcher> watchers = new HashMap<String, Watcher>();
+        private final List<String> names = SimpleList.asList();
+        private final List<Watcher> watchers = SimpleList.asList();
 
         private Usages() {
         }
@@ -252,9 +251,14 @@ final class Observers {
                 if (usages == null) {
                     usages = new Usages();
                 }
-                Observers.Watcher prev = usages.watchers.put(propName, w);
-                if (prev != null) {
+                int index = usages.names.indexOf(propName);
+                if (index == -1) {
+                    usages.names.add(propName);
+                    usages.watchers.add(w);
+                } else {
+                    Watcher prev = usages.watchers.get(index);
                     prev.destroy();
+                    usages.watchers.set(index, w);
                 }
             }
             return usages;
