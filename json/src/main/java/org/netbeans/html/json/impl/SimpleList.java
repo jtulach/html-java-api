@@ -211,7 +211,6 @@ public class SimpleList<E> implements List<E> {
         throw new UnsupportedOperationException("retainAll");
     }
 
-    @Override
     public void sort(Comparator<? super E> c) {
         sortImpl(c, 0, size);
     }
@@ -509,7 +508,6 @@ public class SimpleList<E> implements List<E> {
             throw new UnsupportedOperationException("retainAll");
         }
 
-        @Override
         public void sort(Comparator<? super E> c) {
             sortImpl(c, from, to);
         }
