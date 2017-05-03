@@ -43,6 +43,7 @@
 package org.netbeans.html.json.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import static org.testng.Assert.assertEquals;
@@ -111,6 +112,36 @@ public class SimpleListTest {
         list.add(4.4);
 
         assertEquals(list, list.subList(0, 4));
+    }
+
+    @Test(dataProvider = "lists")
+    public void retainAll(List<Number> list) {
+        list.add(3);
+        list.add(3.3f);
+        list.add(4L);
+        list.add(4.4);
+
+        list.retainAll(Collections.singleton(4L));
+
+        assertEquals(list.size(), 1);
+        assertEquals(list.get(0), 4L);
+    }
+
+    @Test(dataProvider = "lists")
+    public void retainAllOnSubList(List<Number> list) {
+        list.add(3);
+        list.add(3.3f);
+        list.add(4L);
+        list.add(4.4);
+
+        List<Number> subList = list.subList(1, 4);
+
+        subList.retainAll(Collections.singleton(4L));
+
+        assertEquals(subList.size(), 1);
+        assertEquals(subList.get(0), 4L);
+
+        assertEquals(list.size(), 2);
     }
 
 }

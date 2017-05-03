@@ -208,7 +208,7 @@ public class SimpleList<E> implements List<E> {
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        throw new UnsupportedOperationException("retainAll");
+        return retainImpl(this, c);
     }
 
     public void sort(Comparator<? super E> c) {
@@ -377,6 +377,19 @@ public class SimpleList<E> implements List<E> {
         return toStringList(this);
     }
 
+    boolean retainImpl(Collection<?> thiz, Collection<?> c) {
+        boolean changed = false;
+        Iterator<?> it = thiz.iterator();
+        while (it.hasNext()) {
+            Object obj = it.next();
+            if (!c.contains(obj)) {
+                it.remove();
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
     static boolean equalsList(List<?> thiz, Object obj) {
         if (obj == thiz) return true;
         if (obj instanceof List) {
@@ -441,11 +454,6 @@ public class SimpleList<E> implements List<E> {
         }
 
         @Override
-        public Iterator<E> iterator() {
-            return new LI(from, to);
-        }
-
-        @Override
         public Object[] toArray() {
             return toArrayImpl(from, to);
         }
@@ -505,7 +513,7 @@ public class SimpleList<E> implements List<E> {
 
         @Override
         public boolean retainAll(Collection<?> c) {
-            throw new UnsupportedOperationException("retainAll");
+            return retainImpl(this, c);
         }
 
         public void sort(Comparator<? super E> c) {
@@ -552,13 +560,24 @@ public class SimpleList<E> implements List<E> {
         }
 
         @Override
+        public Iterator<E> iterator() {
+            return listIterator(0);
+        }
+
+        @Override
         public ListIterator<E> listIterator() {
-            return new LI(from, to);
+            return listIterator(0);
         }
 
         @Override
         public ListIterator<E> listIterator(int index) {
-            return new LI(from + index, from, to);
+            return new LI(from + index, from, to) {
+                @Override
+                public void remove() {
+                    super.remove();
+                    to--;
+                }
+            };
         }
 
         @Override
@@ -582,7 +601,7 @@ public class SimpleList<E> implements List<E> {
         }
     }
 
-    private final class LI implements ListIterator<E> {
+    private class LI implements ListIterator<E> {
         private int prev = -1;
         private int at;
         private final int min;
