@@ -42,9 +42,7 @@
  */
 package net.java.html.json.tests;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import net.java.html.BrwsrCtx;
 import net.java.html.json.ComputedProperty;
 import net.java.html.json.Function;
@@ -183,9 +181,18 @@ public final class MinesTest {
     @Function static void normalSize(Mines m) {
         m.init(10, 10, 10);
     }
+
+    private static int randIndex;
+    private static int[] RANDOM = { 
+        4, 5, 8, 1, 3, 9, 2, 7, 7, 3, 8, 5, 4, 0,
+        2, 7, 5, 3, 2, 9, 8, 8, 5, 3, 5, 8, 1, 5
+    };
+    private static int random() {
+        return RANDOM[randIndex++ % RANDOM.length];
+    }
     
     @ModelOperation static void init(Mines model, int width, int height, int mines) {
-        List<Row> rows = new ArrayList<Row>(height);
+        List<Row> rows = Models.asList();
         for (int y = 0; y < height; y++) {
             Square[] columns = new Square[width];
             for (int x = 0; x < width; x++) {
@@ -194,10 +201,9 @@ public final class MinesTest {
             rows.add(new Row(columns));
         }
         
-        Random r = new Random();
         while (mines > 0) {
-            int x = r.nextInt(width);
-            int y = r.nextInt(height);
+            int x = random() % width;
+            int y = random() % height;
             final Square s = rows.get(y).getColumns().get(x);
             if (s.isMine()) {
                 continue;
@@ -210,10 +216,10 @@ public final class MinesTest {
         model.getRows().clear();
         model.getRows().addAll(rows);
     }
-    
+
     @ModelOperation static void computeMines(Mines model) {
-        List<Integer> xBombs = new ArrayList<Integer>();
-        List<Integer> yBombs = new ArrayList<Integer>();
+        List<Integer> xBombs = Models.asList();
+        List<Integer> yBombs = Models.asList();
         final List<Row> rows = model.getRows();
         boolean emptyHidden = false;
         SquareType[][] arr = new SquareType[rows.size()][];

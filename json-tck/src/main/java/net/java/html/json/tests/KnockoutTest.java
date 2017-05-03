@@ -42,10 +42,7 @@
  */
 package net.java.html.json.tests;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import net.java.html.BrwsrCtx;
 import net.java.html.json.ComputedProperty;
 import net.java.html.json.Function;
@@ -86,7 +83,7 @@ public final class KnockoutTest {
         for (int i = 0; i < arr.length; i++) {
             arr[i] = results.get(i).length();
         }
-        return Arrays.asList(arr);
+        return Models.asList(arr);
     }
 
     @KOTest public void modifyValueAssertChangeInModelOnEnum() throws Throwable {
@@ -390,13 +387,12 @@ public final class KnockoutTest {
             String v = getSetInput("input", null);
             assertEquals("Kukuc", v, "Value is really kukuc: " + v);
 
-            Timer t = new Timer("Set to Jardo");
-            t.schedule(new TimerTask() {
+            Utils.scheduleLater(1, new Runnable() {
                 @Override
                 public void run() {
                     js.setName("Jardo");
                 }
-            }, 1);
+            });
         }
 
         String v = getSetInput("input", null);
@@ -549,13 +545,12 @@ public final class KnockoutTest {
             int cnt = Utils.countChildren(KnockoutTest.class, "ul");
             assertEquals(cnt, 1, "One child, but was " + cnt);
 
-            Timer t = new Timer("add to array");
-            t.schedule(new TimerTask() {
+            Utils.scheduleLater(1, new Runnable() {
                 @Override
                 public void run() {
                     js.getResults().add("Hi");
                 }
-            }, 1);
+            });
         }
 
 

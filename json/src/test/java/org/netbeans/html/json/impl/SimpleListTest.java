@@ -40,41 +40,77 @@
  * Version 2 license, then the option applies only if the new code is
  * made subject to such option by the copyright holder.
  */
-package net.java.html.json.tests;
+package org.netbeans.html.json.impl;
 
+import java.util.ArrayList;
 import java.util.List;
-import net.java.html.BrwsrCtx;
-import net.java.html.json.ComputedProperty;
-import net.java.html.json.Function;
-import net.java.html.json.Model;
-import net.java.html.json.Models;
-import net.java.html.json.Property;
+import java.util.ListIterator;
+import static org.testng.Assert.assertEquals;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
-/**
- *
- * @author Jaroslav Tulach
- */
-@Model(className = "Pair", targetId = "", properties = {
-    @Property(name = "firstName", type = String.class),
-    @Property(name = "lastName", type = String.class),
-    @Property(name = "next", type = Pair.class)
-})
-class PairModel {
-    static BrwsrCtx ctx;
-    
-    @ComputedProperty 
-    static List<String> bothNames(String firstName, String lastName) {
-        return Models.asList(firstName, lastName);
+public class SimpleListTest {
+
+    public SimpleListTest() {
     }
-    
-    @ComputedProperty
-    static Pair nextOne(Pair next) {
-        return next;
+
+    @DataProvider(name = "lists")
+    public static Object[][] bothLists() {
+        return new Object[][] {
+            new Object[] { new ArrayList<Object>() },
+            new Object[] { SimpleList.asList() },
+        };
     }
-    
-    @Function 
-    static void assignFirstName(Pair m, String data) {
-        ctx = BrwsrCtx.findDefault(Pair.class);
-        m.setFirstName(data);
+
+    @Test(dataProvider = "lists")
+    public void testListIterator(List<String> list) {
+        list.add("Hi");
+        list.add("Ahoj");
+        list.add("Ciao");
+
+        list.sort(String.CASE_INSENSITIVE_ORDER);
+
+        ListIterator<String> it = list.listIterator(3);
+        assertEquals(it.previous(), "Hi");
+        assertEquals(it.previous(), "Ciao");
+        it.remove();
+        assertEquals(it.next(), "Hi");
+        assertEquals(it.previous(), "Hi");
+        assertEquals(it.previous(), "Ahoj");
+        assertEquals(list.size(), 2);
     }
+
+    @Test(dataProvider = "lists")
+    public void toStringHashTest(List<Number> list) {
+        list.add(3);
+        list.add(3.3f);
+        list.add(4L);
+        list.add(4.4);
+        assertEquals(list.toString(), "[3, 3.3, 4, 4.4]");
+        assertEquals(list.hashCode(), 1374332816);
+    }
+
+    @Test(dataProvider = "lists")
+    public void toStringHashSubListTest(List<Number> list) {
+        list.add(3);
+        list.add(3.3f);
+        list.add(4L);
+        list.add(4.4);
+
+        list = list.subList(0, 4);
+
+        assertEquals(list.toString(), "[3, 3.3, 4, 4.4]");
+        assertEquals(list.hashCode(), 1374332816);
+    }
+
+    @Test(dataProvider = "lists")
+    public void subListEqualsTest(List<Number> list) {
+        list.add(3);
+        list.add(3.3f);
+        list.add(4L);
+        list.add(4.4);
+
+        assertEquals(list, list.subList(0, 4));
+    }
+
 }

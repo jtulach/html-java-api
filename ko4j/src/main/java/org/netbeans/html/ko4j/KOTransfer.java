@@ -46,8 +46,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.List;
+import net.java.html.json.Models;
 import org.netbeans.html.context.spi.Contexts;
 import org.netbeans.html.json.spi.JSONCall;
 import org.netbeans.html.json.spi.Transfer;
@@ -89,7 +89,7 @@ implements Transfer {
                     call.notifyError(ex);
                 }
             }
-            List<String> headerPairs = new ArrayList<String>();
+            List<String> headerPairs = Models.asList();
             String h = call.getHeaders();
             if (h != null) {
                 int pos = 0;

@@ -47,6 +47,7 @@ import java.lang.ref.WeakReference;
 import net.java.html.BrwsrCtx;
 import net.java.html.json.Function;
 import net.java.html.json.Model;
+import static org.netbeans.html.json.spi.PropertyBinding.weakSupported;
 
 /** Describes a function provided by the {@link Model} and 
  * annotated by {@link Function} annotation.
@@ -137,7 +138,11 @@ public abstract class FunctionBinding {
 
         @Override
         public FunctionBinding weak() {
-            return new Weak(model, name, index, access);
+            if (weakSupported) {
+                return new Weak(model, name, index, access);
+            } else {
+                return this;
+            }
         }
     }
     

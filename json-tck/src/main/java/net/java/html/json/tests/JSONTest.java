@@ -604,10 +604,7 @@ public final class JSONTest {
         try {
             prev = System.err;
             System.setErr(new PrintStream(err));
-        } catch (SecurityException e) {
-            err = null;
-            prev = null;
-        } catch (LinkageError e) {
+        } catch (Throwable e) {
             err = null;
             prev = null;
         }
