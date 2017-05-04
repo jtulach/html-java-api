@@ -219,6 +219,11 @@ final class SimpleMap<K,V> implements Map<K,V> {
                 public T next() {
                     return it.next();
                 }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
             };
         }
 

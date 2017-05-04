@@ -69,7 +69,7 @@ public class SimpleListTest {
         list.add("Ahoj");
         list.add("Ciao");
 
-        list.sort(String.CASE_INSENSITIVE_ORDER);
+        Collections.sort(list);
 
         ListIterator<String> it = list.listIterator(3);
         assertEquals(it.previous(), "Hi");
