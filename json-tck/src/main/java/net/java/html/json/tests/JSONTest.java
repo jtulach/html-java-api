@@ -45,6 +45,8 @@ package net.java.html.json.tests;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import net.java.html.BrwsrCtx;
 import net.java.html.json.Model;
 import net.java.html.json.ModelOperation;
@@ -72,6 +74,19 @@ public final class JSONTest {
     private Integer orig;
     private String url;
 
+    static {
+        try {
+            System.setProperty("file.encoding", "windows-1251");
+            Field f = Charset.class.getDeclaredField("defaultCharset");
+            f.setAccessible(true);
+            f.set(null, null);
+            assertEquals(Charset.defaultCharset().toString(), "windows-1251", "Encoding has been changed");
+        } catch (Throwable t) {
+            System.err.println("cannot change the file encoding to windows-1251, continuing...");
+            t.printStackTrace();
+        }
+    }
+
     @ModelOperation static void assignFetched(JSONik m, Person p) {
         m.setFetched(p);
     }
@@ -80,8 +95,8 @@ public final class JSONTest {
     @KOTest public void toJSONInABrowser() throws Throwable {
         Person p = Models.bind(new Person(), newContext());
         p.setSex(Sex.MALE);
-        p.setFirstName("Jarda");
-        p.setLastName("Tulach");
+        p.setFirstName("Jára");
+        p.setLastName("Tulachů");
 
         Object json;
         try {
@@ -91,6 +106,20 @@ public final class JSONTest {
         }
 
         Person p2 = Models.fromRaw(newContext(), Person.class, json);
+
+        assertEquals(p2.getFirstName(), p.getFirstName(),
+            "Should be the same: " + p.getFirstName() + " != " + p2.getFirstName());
+    }
+
+    @KOTest public void fromJsonWithUTF8() throws Throwable {
+        final BrwsrCtx c = newContext();
+        Person p = Models.bind(new Person(), c);
+        p.setSex(Sex.MALE);
+        p.setFirstName("Jára");
+        p.setLastName("Tulachů");
+
+        byte[] arr = p.toString().getBytes("UTF-8");
+        Person p2 = Models.parse(c, Person.class, new ByteArrayInputStream(arr));
 
         assertEquals(p2.getFirstName(), p.getFirstName(),
             "Should be the same: " + p.getFirstName() + " != " + p2.getFirstName());

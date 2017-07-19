@@ -118,7 +118,7 @@ implements Transfer {
     @Override
     public Object toJSON(InputStream is) throws IOException {
         StringBuilder sb = new StringBuilder();
-        InputStreamReader r = new InputStreamReader(is);
+        InputStreamReader r = new InputStreamReader(is, "UTF-8");
         for (;;) {
             int ch = r.read();
             if (ch == -1) {
