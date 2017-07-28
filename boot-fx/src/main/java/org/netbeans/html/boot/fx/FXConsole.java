@@ -61,7 +61,7 @@ public final class FXConsole {
     private FXConsole() {
     }
 
-    static void register(WebEngine eng) {
+    static FXConsole register(WebEngine eng) {
         JSObject fn = (JSObject) eng.executeScript(""
             + "(function(attr, l, c) {"
             + "  window.console[attr] = function(msg) { c.log(l, msg); };"
@@ -72,6 +72,7 @@ public final class FXConsole {
         c.registerImpl(fn, "info", Level.INFO);
         c.registerImpl(fn, "warn", Level.WARNING);
         c.registerImpl(fn, "error", Level.SEVERE);
+        return c;
     }
     
     private void registerImpl(JSObject eng, String attr, Level l) {

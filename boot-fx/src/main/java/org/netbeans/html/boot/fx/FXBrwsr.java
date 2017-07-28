@@ -257,12 +257,13 @@ public class FXBrwsr extends Application {
         final Worker<Void> w = view.getEngine().getLoadWorker();
         w.stateProperty().addListener(new ChangeListener<Worker.State>() {
             private String previous;
+            private FXConsole keep;
 
             @Override
             public void changed(ObservableValue<? extends Worker.State> ov, Worker.State t, Worker.State newState) {
                 if (newState.equals(Worker.State.SUCCEEDED)) {
                     if (checkValid()) {
-                        FXConsole.register(view.getEngine());
+                        keep = FXConsole.register(view.getEngine());
                         onLoad.onPageLoad();
                     }
                 }
